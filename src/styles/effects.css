@@ -1,0 +1,374 @@
+/* Курсор, liquid-секция, бесконечная галерея. */
+
+/* --- курсор ------------------------------------------------------------------ */
+
+.has-cursor,
+.has-cursor * {
+  cursor: none !important;
+}
+
+.cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.cursor.is-visible {
+  opacity: 1;
+}
+
+.cursor__trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Кольцо с подсказкой — только над [data-cursor]; в остальное время курсор — это хвост.
+   .cursor__ring только едет за курсором (его transform пишет GSAP), а масштаб — у
+   вложенного .cursor__bubble: если масштабировать сам ring CSS-свойством scale,
+   GSAP «запекает» его в свою матрицу и подсказка навсегда остаётся маленькой. */
+.cursor__ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.cursor__bubble {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 116px;
+  height: 116px;
+  margin: -58px 0 0 -58px;
+  border-radius: 50%;
+  background: rgb(238 240 246 / 92%);
+  box-shadow: 0 0 40px rgb(94 230 255 / 45%);
+  opacity: 0;
+  transform: scale(0.2);
+  transition:
+    opacity 0.3s,
+    transform 0.45s var(--ease-out);
+}
+
+.cursor.is-active .cursor__bubble {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cursor.is-active.is-pressed .cursor__bubble {
+  transform: scale(0.85);
+}
+
+.cursor__label {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bg);
+}
+
+/* --- liquid --------------------------------------------------------------------- */
+
+/* МОБИЛКА: на тач-экране рябь рисуется пальцем (pointermove), но жест одновременно
+   прокручивает страницу. Для мобилки — либо только дождь и тап, либо touch-action: none. */
+.liquid__stage {
+  position: relative;
+  height: 100vh;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.liquid__canvas,
+.liquid__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* С WebGL фото рисует шейдер; <img> остаётся источником и запасным вариантом. */
+.liquid.is-gl .liquid__photo {
+  visibility: hidden;
+}
+
+.liquid__copy {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 10vh;
+  display: grid;
+  gap: 18px;
+  max-width: 560px;
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+
+.liquid__title {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 7vw, 7rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.liquid__hint {
+  max-width: 340px;
+}
+
+/* --- галерея -------------------------------------------------------------------- */
+
+.gallery {
+  --gallery-columns: 8;
+  --gallery-grid-width: 170vw;
+  --gallery-gap: 18px;
+}
+
+.gallery__pin {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.gallery__head {
+  position: absolute;
+  z-index: 2;
+  top: 96px;
+  left: var(--gutter);
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+  padding: 22px 24px;
+  border-radius: var(--radius);
+  background: rgb(5 6 13 / 72%);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+.gallery__head .section-title {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+}
+
+.gallery__head p:last-child {
+  color: var(--muted);
+}
+
+.gallery__viewport {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.gallery__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--gallery-columns), 1fr);
+  width: var(--gallery-grid-width);
+}
+
+.gallery__item {
+  position: relative;
+  aspect-ratio: 4 / 5;
+}
+
+.gallery__card {
+  position: absolute;
+  inset: calc(var(--gallery-gap) / 2);
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.gallery__item:hover .gallery__card,
+.gallery__item:focus-visible .gallery__card {
+  outline-color: rgb(94 230 255 / 70%);
+  box-shadow: var(--frame-glow-cyan);
+}
+
+.gallery__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  padding: 14px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 75%));
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.35s,
+    transform 0.35s var(--ease-out);
+}
+
+.gallery__caption span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.gallery__item:hover .gallery__caption,
+.gallery__item:focus-visible .gallery__caption {
+  opacity: 1;
+  transform: none;
+}
+
+.gallery.is-active .gallery__viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.gallery.is-active .gallery__item {
+  will-change: transform;
+}
+
+.gallery.is-dragging .gallery__viewport {
+  cursor: grabbing;
+}
+
+/* МОБИЛКА: черновые размеры сетки для телефона (меньше колонок, крупнее карточки). */
+@media (max-width: 760px) {
+  .gallery {
+    --gallery-columns: 5;
+    --gallery-grid-width: 260vw;
+  }
+}
+
+/* --- лайтбокс (раскрытие фото архива, см. src/modules/gallery/lightbox.js) ---------- */
+
+/* Окно лежит в <body>, вне ScrollSmoother, поэтому position: fixed работает. */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90; /* выше шапки (10), ниже курсора (100) — курсор должен быть виден */
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(5 6 13 / 88%);
+  backdrop-filter: blur(10px);
+  cursor: zoom-out;
+}
+
+.lightbox__figure {
+  position: relative; /* поверх подложки */
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  margin: 0;
+}
+
+/* Окно с пропорциями снимка (--ar = ширина / высота, ставит JS):
+   ширина — меньшее из «90% экрана» и «78% высоты экрана × пропорция»,
+   поэтому и горизонтальные, и вертикальные снимки целиком помещаются. */
+.lightbox__frame {
+  --ar: 1.5;
+
+  position: relative;
+  width: min(90vw, calc(78vh * var(--ar)));
+  aspect-ratio: var(--ar);
+  overflow: hidden;
+  border-radius: 18px;
+  outline: 1px solid var(--frame-line);
+  outline-offset: -1px;
+  box-shadow: var(--frame-glow-cyan);
+}
+
+/* Картинка, переехавшая из карточки: заполняет окно. Во время Flip-анимации
+   её width/height меняются, а object-fit: cover плавно «раскрывает» кадр. */
+.lightbox__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lightbox__caption {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  max-width: 720px;
+  text-align: center;
+}
+
+.lightbox__title {
+  font-family: var(--display);
+  font-size: clamp(1.2rem, 2.4vw, 1.9rem);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.lightbox__meta {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+
+.lightbox__credit {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.lightbox__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgb(5 6 13 / 60%);
+  color: var(--fg);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.lightbox__close:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* --- переход между страницами (src/modules/page-transition) ------------------------ */
+
+/* Слой поверх всего сайта (но под курсором). Пока перехода нет — скрыт и не
+   ловит клики; во время перехода (.is-active) — виден и блокирует клики,
+   чтобы нельзя было нажать что-то на старой странице. */
+.page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.page-transition.is-active {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Без WebGL: просто тёмный слой, прозрачность меняет JS. */
+.page-transition--fallback {
+  background: var(--bg);
+  opacity: 0;
+}

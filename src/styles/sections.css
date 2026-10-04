@@ -1,0 +1,499 @@
+/* Секции страницы: hero, manifesto, story, orbit, fleet (обёртка), mission. */
+
+section,
+footer {
+  position: relative;
+}
+
+/* --- hero ----------------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  align-content: center;
+  min-height: 100svh;
+  padding: 120px var(--gutter) 80px;
+}
+
+.hero__inner {
+  display: grid;
+  gap: 28px;
+  max-width: min(760px, 62vw);
+}
+
+.hero__title {
+  font-family: var(--display);
+  font-size: clamp(3rem, 9vw, 9rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.hero__lead {
+  max-width: 520px;
+  color: rgb(238 240 246 / 78%);
+  font-size: 1.05rem;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero__hint {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 28px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.hero__specs {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 28px;
+  display: flex;
+  gap: 28px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.hero__specs span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .hero__inner {
+    max-width: none;
+  }
+
+  .hero__specs {
+    display: none;
+  }
+}
+
+/* --- manifesto ------------------------------------------------------------- */
+
+.manifesto {
+  display: grid;
+  gap: 48px;
+  padding: 22vh var(--gutter) 18vh;
+}
+
+.manifesto__text {
+  max-width: 20ch;
+  max-width: min(1100px, 68vw);
+  font-size: clamp(1.5rem, 3.2vw, 3rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  max-width: min(1100px, 68vw);
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.stats dt {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.stats dd {
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 4.2vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .manifesto__text,
+  .stats {
+    max-width: none;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- story ------------------------------------------------------------------ */
+
+/* МОБИЛКА: 100vh на телефонах не учитывает адресную строку — для мобильной версии
+   заменить на 100svh (а в старых браузерах оставить 100vh запасным значением). */
+.story__pin {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.story__hud {
+  position: absolute;
+  top: 96px;
+  right: var(--gutter);
+  left: var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px 24px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.story__hud b {
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.story__bar {
+  width: 160px;
+  height: 2px;
+  background: var(--line);
+}
+
+.story__bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.story__scenes {
+  position: absolute;
+  inset: 0;
+}
+
+.story__scene {
+  position: absolute;
+  top: 50%;
+  left: var(--gutter);
+  width: min(560px, 48vw);
+  transform: translateY(-50%);
+}
+
+.story__scene + .story__scene {
+  visibility: hidden;
+}
+
+.story__num {
+  display: block;
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.story__title {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 6.4vw, 6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.story__text {
+  max-width: 420px;
+  margin-top: 20px;
+  color: rgb(238 240 246 / 78%);
+  font-size: 1.1rem;
+}
+
+.story__dots {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 36px;
+  display: flex;
+  gap: 8px;
+}
+
+.story__dots i {
+  width: 28px;
+  height: 3px;
+  background: var(--line);
+  transition: background 0.4s;
+}
+
+.story__dots i.is-active {
+  background: var(--accent);
+}
+
+/* МОБИЛКА: черновая раскладка истории для узких экранов — текст внизу, ракета над ним. */
+@media (max-width: 760px) {
+  .story__scene {
+    left: var(--gutter);
+    width: auto;
+    top: auto;
+    bottom: 96px;
+    transform: none;
+  }
+}
+
+/* --- orbit ------------------------------------------------------------------ */
+
+.orbit__pin {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 32px;
+  min-height: 100vh;
+  padding: 100px var(--gutter) 40px;
+}
+
+.orbit__copy {
+  display: grid;
+  gap: 24px;
+}
+
+.orbit__captions {
+  display: grid;
+  gap: 14px;
+  max-width: 380px;
+  color: rgb(238 240 246 / 80%);
+}
+
+.orbit__captions b {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.orbit__svg {
+  width: 100%;
+  max-height: 78vh;
+  overflow: visible;
+}
+
+.orbit__ghost {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 2 10;
+}
+
+.orbit__path {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.orbit__panel {
+  fill: #2c5eff;
+  stroke: var(--cyan);
+  stroke-width: 1;
+}
+
+.orbit__body {
+  fill: var(--fg);
+}
+
+.orbit__eye {
+  fill: var(--accent);
+}
+
+@media (max-width: 860px) {
+  .orbit__pin {
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+}
+
+/* --- fleet (обёртка слайдеров) ----------------------------------------------- */
+
+.fleet {
+  display: grid;
+  gap: clamp(64px, 10vh, 130px);
+  padding: 18vh var(--gutter);
+  border-radius: 40px 40px 0 0;
+  overflow: hidden;
+}
+
+.fleet__head {
+  display: grid;
+  gap: 18px;
+}
+
+/* Каждый слайдер — на своей «стеклянной» подложке: блоки читаются отдельно. */
+.demo {
+  display: grid;
+  gap: 32px;
+  padding: clamp(20px, 3vw, 40px);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 32px;
+  background: linear-gradient(160deg, rgb(255 255 255 / 4%), rgb(255 255 255 / 1%) 40%, rgb(0 0 0 / 15%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.demo__head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 4px 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.demo__num {
+  grid-row: span 2;
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.demo__head h3 {
+  font-family: var(--display);
+  font-size: clamp(1.3rem, 2.6vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.demo__head p {
+  color: var(--muted);
+}
+
+.slider-ui {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.slider-ui__counter {
+  min-width: 70px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- mission ------------------------------------------------------------------ */
+
+.mission {
+  display: grid;
+  align-content: space-between;
+  gap: 64px;
+  min-height: 100vh;
+  padding: 18vh 0 32px;
+  overflow: hidden;
+}
+
+.mission__grid {
+  padding: 0 var(--gutter);
+}
+
+.mission__grid > div {
+  display: grid;
+  gap: 32px;
+  max-width: 560px;
+}
+
+.terminal {
+  display: grid;
+  gap: 6px;
+  min-height: 9.5em;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgb(5 6 13 / 70%);
+  backdrop-filter: blur(10px);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: #7dff8a;
+}
+
+.terminal li {
+  min-height: 1.5em;
+  white-space: pre;
+}
+
+.launch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.launch__count {
+  min-width: 6ch;
+  font-family: var(--mono);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mission.is-counting .launch__count {
+  color: var(--accent);
+}
+
+.launch__button {
+  min-width: 160px;
+}
+
+.launch__sparks {
+  position: absolute;
+  left: calc(5.5ch + 24px + 80px);
+  top: 50%;
+  pointer-events: none;
+}
+
+.mission__spark {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--accent) 60%, transparent 70%);
+}
+
+.marquee {
+  overflow: hidden;
+  border-block: 1px solid var(--line);
+  padding: 16px 0;
+}
+
+.marquee__track {
+  display: flex;
+  width: max-content;
+  font-family: var(--display);
+  font-size: clamp(2.6rem, 8vw, 7rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(238 240 246 / 55%);
+}
+
+.mission__legal {
+  padding: 0 var(--gutter);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* --- путевые точки ракеты ------------------------------------------------------- */
+
+/* Невидимые якоря для траектории ракеты (data-flight): на вёрстку не влияют. */
+.flight-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.flight-marker--bottom {
+  top: auto;
+  bottom: 0;
+}

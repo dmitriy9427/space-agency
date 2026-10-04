@@ -1,0 +1,450 @@
+/* Шесть слайдеров секции Fleet. */
+
+/* --- 1. ring --------------------------------------------------------------- */
+
+.ring {
+  display: grid;
+  gap: 24px;
+}
+
+.ring__stage {
+  position: relative;
+  height: clamp(440px, 60vh, 600px);
+  perspective: 1800px;
+  perspective-origin: 50% 40%;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.ring__stage:active {
+  cursor: grabbing;
+}
+
+.ring__spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+/* МОБИЛКА: ширина карточки уже адаптивная (clamp), но кольцо из 8 карточек на
+   телефоне выглядит мелко — для мобилки лучше 5–6 карточек или больший размер. */
+.ring__card {
+  --facing: 1;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(200px, 22vw, 280px);
+  aspect-ratio: 400 / 520;
+  overflow: hidden;
+  border-radius: var(--radius);
+  backface-visibility: hidden;
+  filter: brightness(calc(0.3 + var(--facing) * 0.7));
+}
+
+.ring__card.is-active {
+  box-shadow: var(--frame-glow-cyan);
+}
+
+/* --- 2. stack -------------------------------------------------------------- */
+
+.stack {
+  display: grid;
+  gap: 28px;
+}
+
+/* touch-action: none — карточку можно тянуть в любую сторону.
+   МОБИЛКА: из-за этого на телефоне страницу нельзя прокрутить пальцем, начав жест
+   на стопке. Для мобилки: touch-action: pan-y и Draggable type: 'x'. */
+.stack__deck {
+  position: relative;
+  height: clamp(460px, 62vh, 580px);
+  touch-action: none;
+}
+
+.stack__card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(360px, 78vw);
+  margin-left: calc(min(360px, 78vw) / -2);
+  aspect-ratio: 440 / 560;
+  overflow: hidden;
+  border-radius: 24px;
+  cursor: grab;
+  will-change: transform;
+}
+
+.stack__card:active {
+  cursor: grabbing;
+}
+
+/* Верхняя карточка стопки (у неё самый большой z-index — её ставит JS). */
+.stack__card:hover {
+  box-shadow: var(--frame-glow-cyan);
+}
+
+/* --- 3–4. infinite ---------------------------------------------------------- */
+
+.infinite {
+  --infinite-gap: 28px;
+
+  display: grid;
+  gap: 24px;
+}
+
+.infinite__viewport {
+  position: relative;
+  height: clamp(420px, 62vh, 600px);
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.infinite__viewport:active {
+  cursor: grabbing;
+}
+
+.infinite__slide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: clamp(240px, 26vw, 360px);
+  height: clamp(320px, 50vh, 470px);
+  margin: auto 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  will-change: transform;
+}
+
+.infinite__slide.is-active {
+  box-shadow: var(--frame-glow-orange);
+}
+
+.infinite__slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: var(--dim, 0);
+  pointer-events: none;
+}
+
+.infinite__art {
+  position: absolute;
+  inset: 0;
+}
+
+.infinite__code {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: rgb(255 255 255 / 75%);
+}
+
+.infinite__title {
+  flex: 1;
+  max-width: 460px;
+  overflow: hidden;
+  font-family: var(--display);
+  font-size: clamp(1.1rem, 2vw, 1.7rem);
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Без JS — обычная горизонтальная прокрутка. */
+.infinite:not(.is-ready) .infinite__viewport {
+  display: flex;
+  gap: var(--infinite-gap);
+  overflow-x: auto;
+}
+
+.infinite:not(.is-ready) .infinite__slide {
+  position: relative;
+  flex: none;
+}
+
+/* WebGL-версия: DOM-слайды остаются только для размеров и доступности. */
+.infinite.is-gl .infinite__slide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.infinite__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.infinite--3d .infinite__viewport {
+  height: clamp(460px, 70vh, 680px);
+}
+
+/* --- 5. видеолента (см. src/modules/sliders/video-strip) ----------------------- */
+
+.vstrip {
+  /* Ширина обычной карточки. Раскрытая — в EXPAND_RATIO (=3) раза шире (layout.js).
+     МОБИЛКА: на телефоне уменьшить, например до 180px (см. docs/11-mobile.md). */
+  --vstrip-card-width: 260px;
+
+  /* Окно ленты: всё, что шире, обрезается; дорожку тянут мышью. */
+  overflow: hidden;
+  /* Вертикальный жест — прокрутка страницы, горизонтальный — Draggable. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Дорожка: карточки в ряд. width: max-content — ширина по содержимому
+   (шире окна), её сдвигает Draggable через transform. */
+.vstrip__track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+}
+
+.vstrip__card {
+  position: relative;
+  flex: none; /* не сжиматься и не растягиваться: ширину задаём сами */
+  width: var(--vstrip-card-width); /* раскрытой карточке JS ставит инлайн-width */
+  height: clamp(440px, 64vh, 600px);
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  cursor: grab;
+}
+
+.vstrip__card:active {
+  cursor: grabbing;
+}
+
+.vstrip__card.is-active {
+  box-shadow: var(--frame-glow-orange);
+}
+
+.vstrip__poster,
+.vstrip__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none; /* не мешать Draggable хватать карточку */
+}
+
+/* Видео проявляется поверх постера, только когда реально заиграло (класс ставит JS). */
+.vstrip__video {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.vstrip__card.is-playing .vstrip__video {
+  opacity: 1;
+}
+
+/* Затемнение: у свёрнутых сильнее, у раскрытой — только градиент под текстом. */
+.vstrip__card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 40%, rgb(0 0 0 / 78%)), rgb(5 6 13 / 40%);
+  transition: background-color 0.6s;
+  pointer-events: none;
+}
+
+.vstrip__card.is-active::after {
+  background: linear-gradient(transparent 45%, rgb(0 0 0 / 78%));
+}
+
+.vstrip__index {
+  position: absolute;
+  z-index: 1;
+  top: 18px;
+  left: 18px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+/* Подпись свёрнутой карточки — вертикально, снизу вверх. */
+.vstrip__label {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 28px;
+  font-family: var(--display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: translateX(-50%) rotate(180deg);
+  transition: opacity 0.3s;
+}
+
+.vstrip__card.is-active .vstrip__label {
+  opacity: 0;
+}
+
+/* Содержимое раскрытой карточки. Ширина фиксирована (не 100%), чтобы текст
+   не переносился заново на каждом кадре раскрытия — он просто «открывается». */
+.vstrip__content {
+  position: absolute;
+  z-index: 1;
+  left: 28px;
+  bottom: 28px;
+  display: grid;
+  gap: 10px;
+  width: min(460px, calc(var(--vstrip-card-width) * 3 - 56px));
+  visibility: hidden;
+}
+
+.vstrip__card.is-active .vstrip__content {
+  visibility: visible;
+}
+
+.vstrip__kind {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--cyan);
+}
+
+.vstrip__title {
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.vstrip__text {
+  color: rgb(238 240 246 / 82%);
+}
+
+/* --- 6. шейдерный слайдер (на всю ширину экрана) ------------------------------ */
+
+/* Блок без подложки: сам слайдер выходит за поля секции до краёв экрана. */
+.demo--bleed {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.shader-slider {
+  position: relative;
+}
+
+/* Приём «full bleed»: ширина = ширина окна (100vw), а отрицательные поля
+   сдвигают блок к левому краю экрана, где бы ни стоял родитель:
+   calc(50% - 50vw) = «от середины родителя до левого края окна».
+   Лишние пиксели полосы прокрутки обрезает overflow: hidden у .fleet. */
+.shader-slider__stage {
+  position: relative;
+  width: 100vw;
+  height: min(92vh, 900px);
+  margin-inline: calc(50% - 50vw);
+  overflow: hidden;
+  background: var(--bg-2);
+  /* Перетаскивание во все стороны: браузер не должен сам прокручивать страницу
+     при вертикальном жесте над слайдером.
+     МОБИЛКА: на телефоне это блокирует прокрутку страницы пальцем над слайдером —
+     см. docs/11-mobile.md (вариант: touch-action: pan-y и только горизонтальные свайпы). */
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+  box-shadow: none;
+}
+
+.shader-slider__stage:active {
+  cursor: grabbing;
+}
+
+/* outline выше выключен (рамка не нужна фото во всю ширину), но фокус с
+   клавиатуры должен быть виден — возвращаем его только для :focus-visible. */
+.shader-slider__stage:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -4px;
+}
+
+.shader-slider__slide {
+  position: absolute;
+  inset: 0;
+}
+
+.infinite__art .photo {
+  /* Запас под параллакс картинки внутри слайда. */
+  transform-origin: center;
+}
+
+.shader-slider.is-gl .shader-slider__slide {
+  display: none;
+}
+
+.shader-slider__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Подпись и кнопки — поверх фото внизу, на тёмном градиенте для читаемости.
+   pointer-events: none у подложки, чтобы перетаскивание работало и над ней;
+   кнопки возвращают себе клики. */
+.shader-slider__overlay {
+  position: absolute;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding: 120px var(--gutter) 40px;
+  background: linear-gradient(transparent, rgb(5 6 13 / 85%));
+  pointer-events: none;
+}
+
+.shader-slider__overlay .slider-ui {
+  pointer-events: auto;
+}
+
+.shader-slider__caption {
+  display: grid;
+  gap: 8px;
+}
+
+.shader-slider__title {
+  font-family: var(--display);
+  font-size: clamp(2rem, 5vw, 4.6rem);
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.shader-slider__text {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Подсказка о вертикальных жестах в правом верхнем углу. */
+.shader-slider__hint {
+  position: absolute;
+  top: 28px;
+  right: var(--gutter);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: rgb(255 255 255 / 70%);
+  pointer-events: none;
+}

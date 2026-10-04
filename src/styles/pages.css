@@ -1,0 +1,419 @@
+/*
+ * Стили страниц «Миссии» и «Направления» и общих элементов многостраничности.
+ * МОБИЛКА: все места, которые нужно доработать для телефона, помечены
+ * комментарием «МОБИЛКА» (полный список — docs/11-mobile.md).
+ */
+
+/* --- пункт меню текущей страницы ------------------------------------------------- */
+
+/* aria-current="page" ставит модуль nav — этот же атрибут читают скринридеры. */
+.nav__links a[aria-current='page'] {
+  background: rgb(255 255 255 / 10%);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* --- интро страницы (модуль page-intro) -------------------------------------------- */
+
+.page-intro {
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  min-height: 92vh;
+  padding: 140px var(--gutter) 80px;
+}
+
+.page-intro__title {
+  max-width: 16ch;
+  font-family: var(--display);
+  font-size: clamp(2.6rem, 7vw, 7rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.page-intro__lead {
+  max-width: 560px;
+  color: rgb(238 240 246 / 78%);
+  font-size: 1.1rem;
+}
+
+.page-intro__hint {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* --- горизонтальная лента миссий (модуль hscroll) ----------------------------------- */
+
+.hscroll {
+  /* Ширина одной карточки.
+     МОБИЛКА: на телефоне уменьшить до ~78vw, чтобы карточка влезала в экран. */
+  --hscroll-card: 420px;
+
+  position: relative;
+}
+
+/* Закреплённый экран: заголовок сверху, лента посередине. overflow: hidden —
+   лента шире экрана, лишнее за краем не видно. */
+.hscroll__pin {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  padding: 110px 0 60px;
+  overflow: hidden;
+}
+
+.hscroll__head {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 0 var(--gutter) 32px;
+}
+
+.hscroll__progress {
+  flex: 1;
+  max-width: 360px;
+  height: 2px;
+  background: var(--line);
+}
+
+.hscroll__progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* Дорожка: ширина по содержимому (больше экрана). Её сдвигает JS через transform. */
+.hscroll__track {
+  position: relative;
+  width: max-content;
+  padding: 0 var(--gutter);
+}
+
+/* Линия-таймлайн на всю длину дорожки, над карточками. */
+.hscroll__line {
+  position: absolute;
+  top: 0;
+  left: var(--gutter);
+  right: var(--gutter);
+  width: calc(100% - var(--gutter) * 2);
+  height: 20px;
+  overflow: visible;
+}
+
+.hscroll__line path {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2;
+  /* Толщина линии не растягивается вместе с viewBox (preserveAspectRatio="none"). */
+  vector-effect: non-scaling-stroke;
+}
+
+.hscroll__cards {
+  display: flex;
+  gap: 32px;
+  padding-top: 48px;
+}
+
+.hscroll__card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  gap: 10px;
+  width: var(--hscroll-card);
+  flex: none;
+}
+
+.hscroll__photo {
+  /* Высота от высоты экрана: карточка с текстом должна влезать в закреплённый экран
+     даже на невысоких ноутбуках. */
+  height: min(38vh, calc(var(--hscroll-card) * 0.75));
+  overflow: hidden; /* фото внутри масштабируется (scale 1.35 → 1) — края обрезаются */
+  border-radius: var(--radius);
+  outline: 1px solid var(--frame-line);
+  outline-offset: -1px;
+  box-shadow: var(--frame-shadow);
+}
+
+.hscroll__year {
+  margin-top: 8px;
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 4vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.hscroll__title {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  text-transform: uppercase;
+}
+
+.hscroll__text {
+  color: rgb(238 240 246 / 75%);
+}
+
+.hscroll__num {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* --- архив с фильтром (модуль flip-filter) ------------------------------------------ */
+
+.fgrid {
+  display: grid;
+  gap: 40px;
+  padding: 16vh var(--gutter) 10vh;
+}
+
+.fgrid__head {
+  display: grid;
+  gap: 18px;
+}
+
+.fgrid__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* «Чипы» фильтра. Выбранный — aria-pressed="true" (ставит JS). */
+.chip {
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    background 0.3s,
+    color 0.3s,
+    border-color 0.3s;
+}
+
+.chip:hover {
+  border-color: var(--fg);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0a0a0a;
+}
+
+/* Сетка: колонки сами подстраиваются под ширину (auto-fill). */
+.fgrid__grid {
+  position: relative; /* нужно Flip для absolute: true во время анимации */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.fgrid__item {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  outline: 1px solid var(--frame-line);
+  outline-offset: -1px;
+  box-shadow: var(--frame-shadow);
+}
+
+/* Скрытые фильтром. display: none меняет раскладку — это и анимирует Flip. */
+.fgrid__item.is-hidden {
+  display: none;
+}
+
+.fgrid__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  padding: 14px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 75%));
+  font-weight: 600;
+}
+
+.fgrid__caption span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--cyan);
+}
+
+.page-footer {
+  display: grid;
+  justify-items: start;
+  gap: 32px;
+  padding: 6vh var(--gutter) 48px;
+}
+
+/* --- полноэкранные слайды (модуль fullscreen-slides) ---------------------------------- */
+
+/* Секция ровно в экран: прокручивать страницу нечего, слайды переключает Observer. */
+.fslides {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.fslides__list {
+  position: absolute;
+  inset: 0;
+}
+
+/* Все слайды лежат друг на друге; видимый — у которого autoAlpha 1 (ставит JS). */
+.fslide {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+/* Две обёртки «шторки»: обе с overflow: hidden (приём объяснён в fullscreen-slides/index.js). */
+.fslide__outer,
+.fslide__inner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.fslide__inner {
+  position: relative;
+}
+
+/* Фон чуть выше экрана (inset -10%) — запас под параллакс при смене слайда. */
+.fslide__bg {
+  position: absolute;
+  inset: -10% 0;
+}
+
+.fslide__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(5 6 13 / 85%) 0%, rgb(5 6 13 / 30%) 55%, transparent 100%);
+}
+
+.fslide__content {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 14vh;
+  display: grid;
+  gap: 18px;
+  max-width: min(1100px, 75vw);
+}
+
+/* nowrap: название — одно слово, переносить его нельзя (иначе «ЮПИТ / ЕР»).
+   Размер подобран так, чтобы самое длинное («Юпитер») влезало в 75% ширины.
+   МОБИЛКА: на телефоне уменьшить (clamp от ~2.4rem). */
+.fslide__title {
+  white-space: nowrap;
+  font-family: var(--display);
+  font-size: clamp(3rem, 9vw, 8.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.fslide__tagline {
+  font-size: 1.2rem;
+  color: rgb(238 240 246 / 85%);
+}
+
+.fslide__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 12px;
+}
+
+.fslide__stats dt {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.fslide__stats dd {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.fslides__ui {
+  position: absolute;
+  z-index: 2;
+  right: var(--gutter);
+  bottom: 14vh;
+  display: grid;
+  justify-items: end;
+  gap: 16px;
+}
+
+.fslides__counter {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+}
+
+.fslides__dots {
+  display: flex;
+  gap: 8px;
+}
+
+.fslides__dots button {
+  width: 28px;
+  height: 3px;
+  padding: 0;
+  border: 0;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.4s;
+}
+
+.fslides__dots button.is-active {
+  background: var(--accent);
+}
+
+.fslides__hint {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* Мини-схема маршрута в правом верхнем углу.
+   МОБИЛКА: на узком экране перекрывает заголовок — спрятать (display: none) или уменьшить. */
+.route {
+  position: absolute;
+  z-index: 2;
+  top: 110px;
+  right: var(--gutter);
+  width: 300px;
+  overflow: visible;
+}
+
+.route__path {
+  fill: none;
+  stroke: rgb(255 255 255 / 30%);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 6;
+}
+
+.route__dot {
+  fill: var(--bg);
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+}
+
+.route__ship {
+  fill: var(--accent);
+}

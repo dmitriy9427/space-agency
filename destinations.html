@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Куда летает ОРБИТА: Луна, Марс, планеты-гиганты." />
+    <meta name="theme-color" content="#05060d" />
+    <title>Направления — ОРБИТА</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <!--
+      ОБЩИЕ СЛОИ (одинаковые на всех страницах сайта: index.html, missions.html,
+      destinations.html). Если меняете шапку или курсор — меняйте во всех трёх файлах.
+      Они лежат ВНЕ #smooth-wrapper: внутри ScrollSmoother position: fixed не работает.
+    -->
+    <div class="sky" aria-hidden="true"></div>
+
+    <!-- ФИКСИРОВАННЫЕ СЛОИ ЭТОЙ СТРАНИЦЫ: роутер подменяет этот блок при переходе. -->
+    <div data-page-fixed></div>
+
+    <div class="cursor" data-module="cursor" aria-hidden="true">
+      <canvas class="cursor__trail"></canvas>
+      <span class="cursor__ring"><span class="cursor__bubble"><span class="cursor__label"></span></span></span>
+    </div>
+
+    <header class="nav" data-module="nav">
+      <a class="nav__logo" href="/" data-magnetic aria-label="ОРБИТА — на главную">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6" /><ellipse cx="16" cy="16" rx="14" ry="5" transform="rotate(-20 16 16)" /></svg>
+        ОРБИТА
+      </a>
+      <!-- Ссылки на страницы перехватывает роутер (переход-занавес), ссылки с # на
+           текущей странице — модуль nav (плавная прокрутка). -->
+      <nav class="nav__links" aria-label="Разделы">
+        <a href="/">Главная</a>
+        <a href="/missions.html">Миссии</a>
+        <a href="/destinations.html">Направления</a>
+        <a href="/#fleet">Слайдеры</a>
+        <a href="/#gallery">Архив</a>
+        <a href="/#mission">Пуск</a>
+      </nav>
+      <span class="nav__progress" data-nav-progress aria-hidden="true"></span>
+    </header>
+
+    <!-- МОБИЛКА: временная плашка для узких экранов. Когда мобильная версия будет готова
+         (docs/11-mobile.md), удалите этот блок во всех трёх HTML-файлах и стили .desktop-note. -->
+    <p class="desktop-note" role="note">Сайт пока сделан для компьютера — на телефоне часть эффектов упрощена или недоступна.</p>
+    <div id="smooth-wrapper">
+      <div id="smooth-content">
+        <!-- СОДЕРЖИМОЕ СТРАНИЦЫ: роутер подменяет весь <main data-page> при переходе. -->
+        <main data-page="destinations" data-sky="1">
+          <!-- Полноэкранные слайды: колесо, свайп, стрелки (модуль fullscreen-slides).
+               Страница не прокручивается — Observer сам переключает слайды. -->
+          <section class="fslides" data-module="fullscreen-slides" aria-label="Направления полётов" aria-roledescription="слайды">
+            <div class="fslides__list" data-render="destinations"></div>
+
+            <div class="fslides__ui">
+              <span class="fslides__counter" data-fslides-counter>01 / 06</span>
+              <div class="fslides__dots" role="group" aria-label="Выбрать направление">
+                <button type="button" data-fslides-dot aria-label="Луна"></button>
+                <button type="button" data-fslides-dot aria-label="Марс"></button>
+                <button type="button" data-fslides-dot aria-label="Юпитер"></button>
+                <button type="button" data-fslides-dot aria-label="Сатурн"></button>
+                <button type="button" data-fslides-dot aria-label="Уран"></button>
+                <button type="button" data-fslides-dot aria-label="Нептун"></button>
+              </div>
+              <p class="fslides__hint">Колесо, свайп или ↑ ↓</p>
+            </div>
+
+            <!-- Мини-схема маршрута: кораблик летит по кривой (MotionPath) к текущей планете. -->
+            <svg class="route" viewBox="0 0 300 120" aria-hidden="true">
+              <path class="route__path" data-route-path d="M10,95 C60,20 110,110 150,60 S240,10 290,40" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <circle class="route__dot" data-route-dot r="4" />
+              <path class="route__ship" data-route-ship d="M8,0 L-6,-5 L-3,0 L-6,5 Z" />
+            </svg>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

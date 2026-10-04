@@ -1,0 +1,427 @@
+/* Токены, сброс, типографика, общие элементы (кнопки, шапка, заголовки). */
+
+:root {
+  --bg: #05060d;
+  --bg-2: #0b0d18;
+  --fg: #eef0f6;
+  --muted: #8a90a6;
+  --accent: #ff5b2e;
+  --cyan: #5ee6ff;
+  --line: rgb(255 255 255 / 12%);
+  --radius: 18px;
+  --gutter: clamp(16px, 4vw, 56px);
+  --font: 'Manrope Variable', system-ui, sans-serif;
+  --display: 'Unbounded Variable', 'Manrope Variable', system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Рамка фото: тонкая светлая линия внутри + глубокая тень снаружи.
+     Тёмные снимки космоса иначе сливаются с тёмным фоном. */
+  --frame-line: rgb(255 255 255 / 16%);
+  --frame-shadow: 0 28px 60px -22px rgb(0 0 0 / 85%), 0 10px 24px -12px rgb(0 0 0 / 60%);
+  --frame-glow-cyan: 0 0 0 1px rgb(94 230 255 / 55%), 0 0 46px -6px rgb(94 230 255 / 45%), var(--frame-shadow);
+  --frame-glow-orange: 0 0 0 1px rgb(255 91 46 / 60%), 0 0 50px -6px rgb(255 91 46 / 40%), var(--frame-shadow);
+  --space-bg:
+    radial-gradient(1100px 700px at 8% 0%, rgb(76 90 220 / 22%), transparent 60%),
+    radial-gradient(900px 600px at 100% 35%, rgb(255 91 46 / 10%), transparent 60%),
+    radial-gradient(1100px 800px at 35% 100%, rgb(94 230 255 / 9%), transparent 60%),
+    #080a18;
+  --sky-mix: 0;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ol,
+ul,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+ol,
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: #000;
+}
+
+/* --- слои --------------------------------------------------------------- */
+
+/* Небо: закат на старте, к орбите (--sky-mix → 1) — открытый космос. */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(120% 80% at 70% 0%, #101634 0%, var(--bg) 60%);
+}
+
+.sky::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(90% 55% at 72% 100%, rgb(255 106 61 / 55%) 0%, rgb(255 106 61 / 0%) 70%),
+    linear-gradient(180deg, #0a0f2a 0%, #1c1840 55%, #3a1f3a 85%, #5a2a2a 100%);
+  opacity: calc(1 - var(--sky-mix));
+}
+
+.rocket-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#smooth-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+/* --- типографика ---------------------------------------------------------- */
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.section-title {
+  font-family: var(--display);
+  font-size: clamp(1.9rem, 4.6vw, 4.4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+/* --- кнопки --------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  backdrop-filter: blur(8px);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    color 0.3s;
+}
+
+.button:hover {
+  border-color: var(--fg);
+}
+
+.button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0a0a0a;
+}
+
+.button--primary:hover {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.round-button {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition:
+    background 0.3s,
+    color 0.3s;
+}
+
+.round-button:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* --- шапка ---------------------------------------------------------------- */
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px var(--gutter);
+  transition: transform 0.5s var(--ease-out);
+}
+
+.nav.is-hidden {
+  transform: translateY(-110%);
+}
+
+/* Мягкая подложка: заголовки секций не спорят с меню. */
+.nav::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -24px;
+  z-index: -1;
+  background: linear-gradient(rgb(5 6 13 / 85%), rgb(5 6 13 / 0%));
+  pointer-events: none;
+}
+
+.nav__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.nav__logo svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+
+.nav__logo circle {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.nav__links {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(5 6 13 / 55%);
+  backdrop-filter: blur(12px);
+}
+
+.nav__links a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  transition:
+    background 0.3s,
+    color 0.3s;
+}
+
+.nav__links a:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.nav__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* МОБИЛКА: на узких экранах меню просто прячется — навигации нет совсем.
+   Для мобильной версии нужна кнопка-«бургер» и выезжающее меню (docs/11-mobile.md). */
+@media (max-width: 860px) {
+  .nav__links {
+    display: none;
+  }
+}
+
+/* --- рамки фото --------------------------------------------------------------- */
+
+/* Общая рамка для всех карточек с фото: линия рисуется outline'ом поверх
+   картинки (outline повторяет border-radius), тень — снаружи. */
+:where(.ring__card, .stack__card, .infinite__slide, .gallery__card, .vstrip__card, .shader-slider__stage) {
+  outline: 1px solid var(--frame-line);
+  outline-offset: -1px;
+  box-shadow: var(--frame-shadow);
+  transition:
+    box-shadow 0.5s var(--ease-out),
+    outline-color 0.5s;
+}
+
+/* Звёздная пыль для фона секций: две сетки точек разного размера. */
+.space-dust {
+  position: relative;
+  isolation: isolate;
+  background: var(--space-bg);
+}
+
+.space-dust::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgb(255 255 255 / 55%), transparent 60%),
+    radial-gradient(1px 1px at 140px 90px, rgb(255 255 255 / 35%), transparent 60%),
+    radial-gradient(1.5px 1.5px at 90px 160px, rgb(190 230 255 / 50%), transparent 60%),
+    radial-gradient(1px 1px at 230px 210px, rgb(255 220 190 / 40%), transparent 60%);
+  background-size: 260px 260px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* --- фото -------------------------------------------------------------------- */
+
+/* Фото NASA: на всю карточку, как cover; не перетаскивается браузером. */
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--bg-2);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.card__meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  gap: 2px;
+  padding: 18px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 70%));
+  pointer-events: none;
+}
+
+.card__code,
+.card__kind {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.card__title {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+/* --- плашка «пока для компьютера» ---------------------------------------------------
+   МОБИЛКА: временная. Показывается на узких экранах и тач-устройствах. Удалить вместе
+   с разметкой .desktop-note в HTML, когда будет мобильная версия. */
+.desktop-note {
+  display: none;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .desktop-note {
+    position: fixed;
+    z-index: 20;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: block;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgb(5 6 13 / 88%);
+    backdrop-filter: blur(10px);
+    font-size: 0.85rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+}
+
+/* --- отладка ---------------------------------------------------------------- */
+
+.fps {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1000;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 75%);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #7dff8a;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

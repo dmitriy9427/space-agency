@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ОРБИТА — вымышленное космическое агентство. Площадка для анимаций на GSAP и Three.js." />
+    <meta name="theme-color" content="#05060d" />
+    <title>ОРБИТА — космическое агентство</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <!--
+      ОБЩИЕ СЛОИ (одинаковые на всех страницах сайта: index.html, missions.html,
+      destinations.html). Если меняете шапку или курсор — меняйте во всех трёх файлах.
+      Они лежат ВНЕ #smooth-wrapper: внутри ScrollSmoother position: fixed не работает.
+    -->
+    <div class="sky" aria-hidden="true"></div>
+
+    <!-- ФИКСИРОВАННЫЕ СЛОИ ЭТОЙ СТРАНИЦЫ: роутер подменяет этот блок при переходе. -->
+    <div data-page-fixed>
+      <canvas class="rocket-canvas" data-module="rocket" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="cursor" data-module="cursor" aria-hidden="true">
+      <canvas class="cursor__trail"></canvas>
+      <span class="cursor__ring"><span class="cursor__bubble"><span class="cursor__label"></span></span></span>
+    </div>
+
+    <header class="nav" data-module="nav">
+      <a class="nav__logo" href="/" data-magnetic aria-label="ОРБИТА — на главную">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="6" /><ellipse cx="16" cy="16" rx="14" ry="5" transform="rotate(-20 16 16)" /></svg>
+        ОРБИТА
+      </a>
+      <!-- Ссылки на страницы перехватывает роутер (переход-занавес), ссылки с # на
+           текущей странице — модуль nav (плавная прокрутка). -->
+      <nav class="nav__links" aria-label="Разделы">
+        <a href="/">Главная</a>
+        <a href="/missions.html">Миссии</a>
+        <a href="/destinations.html">Направления</a>
+        <a href="/#fleet">Слайдеры</a>
+        <a href="/#gallery">Архив</a>
+        <a href="/#mission">Пуск</a>
+      </nav>
+      <span class="nav__progress" data-nav-progress aria-hidden="true"></span>
+    </header>
+
+    <!-- МОБИЛКА: временная плашка для узких экранов. Когда мобильная версия будет готова
+         (docs/11-mobile.md), удалите этот блок во всех трёх HTML-файлах и стили .desktop-note. -->
+    <p class="desktop-note" role="note">Сайт пока сделан для компьютера — на телефоне часть эффектов упрощена или недоступна.</p>
+    <div id="smooth-wrapper">
+      <div id="smooth-content">
+        <!-- СОДЕРЖИМОЕ СТРАНИЦЫ: роутер подменяет весь <main data-page> при переходе. -->
+        <main data-page="home">
+          <!-- 1. ПЕРВЫЙ ЭКРАН ------------------------------------------------------ -->
+          <section class="hero" id="top" data-module="hero" data-flight="hero">
+            <div class="hero__inner" data-hero-parallax>
+              <p class="eyebrow" data-hero-eyebrow>Основано в 2026 · низкая околоземная орбита</p>
+              <h1 class="hero__title" data-hero-title>Выше<br />шума</h1>
+              <p class="hero__lead" data-hero-fade>
+                ОРБИТА — вымышленное космическое агентство и площадка для анимаций: GSAP, ScrollTrigger, ScrollSmoother,
+                Draggable, Flip, SplitText, MorphSVG и Three.js на одной странице.
+              </p>
+              <div class="hero__actions" data-hero-fade>
+                <a class="button button--primary" href="/#story" data-magnetic data-cursor="старт">Начать миссию</a>
+                <a class="button" href="/missions.html" data-magnetic>Наши миссии</a>
+              </div>
+            </div>
+            <p class="hero__hint" data-hero-hint>Прокрутите, чтобы взлететь ↓</p>
+            <ul class="hero__specs" data-speed="0.85">
+              <li><span>Полезная нагрузка</span>22,8 т</li>
+              <li><span>Тяга</span>7 607 кН</li>
+              <li><span>Ступени</span>2 + ускорители</li>
+            </ul>
+          </section>
+
+          <!-- 2. МАНИФЕСТ ----------------------------------------------------------- -->
+          <section class="manifesto" data-module="manifesto" data-flight="manifesto">
+            <p class="eyebrow" data-scramble>// манифест</p>
+            <p class="manifesto__text" data-reveal-words>
+              Мы строим ракеты так, как строят хорошие интерфейсы: у каждого кадра есть цель, у каждого движения — вес,
+              и ничто не двигается без причины. Прокрутка — наш обратный отсчёт, курсор — центр управления полётом.
+            </p>
+            <dl class="stats">
+              <div class="stats__item" data-lag="0.1">
+                <dt data-scramble>Запусков</dt>
+                <dd data-count="384" data-suffix="+">0</dd>
+              </div>
+              <div class="stats__item" data-lag="0.2">
+                <dt data-scramble>Орбитальная скорость</dt>
+                <dd data-count="7.8" data-suffix=" км/с">0</dd>
+              </div>
+              <div class="stats__item" data-lag="0.3">
+                <dt data-scramble>Вернулись домой</dt>
+                <dd data-count="1204">0</dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- 3. ИСТОРИЯ (пин) ------------------------------------------------------- -->
+          <section class="story" id="story" data-module="story" data-flight="story">
+            <div class="story__pin" data-story-pin>
+              <div class="story__hud" aria-hidden="true">
+                <span><b data-story-clock>T+00:00</b></span>
+                <span>ВЫС <b data-story-alt>0</b> км</span>
+                <span>СКОР <b data-story-speed>0.00</b> км/с</span>
+                <span class="story__bar"><i data-story-bar></i></span>
+              </div>
+              <ol class="story__scenes">
+                <li class="story__scene" data-scene>
+                  <span class="story__num" data-scene-part>01</span>
+                  <h2 class="story__title" data-scene-part>Зажигание</h2>
+                  <p class="story__text" data-scene-part>Девять двигателей просыпаются за три секунды. Стол дрожит, опоры отходят.</p>
+                </li>
+                <li class="story__scene" data-scene>
+                  <span class="story__num" data-scene-part>02</span>
+                  <h2 class="story__title" data-scene-part>Max-Q</h2>
+                  <p class="story__text" data-scene-part>Пик аэродинамического давления. Двигатели сбрасывают тягу, чтобы корпус выдержал.</p>
+                </li>
+                <li class="story__scene" data-scene>
+                  <span class="story__num" data-scene-part>03</span>
+                  <h2 class="story__title" data-scene-part>Разделение</h2>
+                  <p class="story__text" data-scene-part>Ускорители выгорели и уходят. Посмотрите на ракету — она стала легче.</p>
+                </li>
+                <li class="story__scene" data-scene>
+                  <span class="story__num" data-scene-part>04</span>
+                  <h2 class="story__title" data-scene-part>Орбита</h2>
+                  <p class="story__text" data-scene-part>408 км вверх и 7,66 км/с вбок. Вечное падение, которое никогда не кончается землёй.</p>
+                </li>
+              </ol>
+              <div class="story__dots" aria-hidden="true">
+                <i data-story-dot></i><i data-story-dot></i><i data-story-dot></i><i data-story-dot></i>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. ОРБИТА (SVG) -------------------------------------------------------- -->
+          <!-- Ракета разворачивается носом вниз, пока «Орбита» въезжает на экран. -->
+          <section class="orbit" id="orbit" data-module="orbit" data-flight="orbit" data-flight-start="top 25%">
+            <i class="flight-marker" data-flight="apogee" data-flight-start="top bottom" aria-hidden="true"></i>
+            <div class="orbit__pin" data-orbit-pin>
+              <div class="orbit__copy">
+                <p class="eyebrow">// орбитальная механика</p>
+                <h2 class="section-title">Нарисуй путь —<br />и следуй по нему</h2>
+                <ul class="orbit__captions">
+                  <li data-orbit-caption><b>DrawSVG</b> прорисовывает орбиту по мере прокрутки.</li>
+                  <li data-orbit-caption><b>MotionPath</b> ведёт спутник точно по ней.</li>
+                  <li data-orbit-caption><b>MorphSVG</b> превращает планету в звезду, луну и ракету.</li>
+                </ul>
+              </div>
+              <svg class="orbit__svg" viewBox="0 0 800 600" role="img" aria-label="Спутник на орбите вокруг планеты">
+                <defs>
+                  <radialGradient id="planet-fill" cx="35%" cy="30%">
+                    <stop offset="0" stop-color="#ffd2a1" />
+                    <stop offset="0.5" stop-color="#ff5b2e" />
+                    <stop offset="1" stop-color="#4a1008" />
+                  </radialGradient>
+                  <radialGradient id="planet-glow">
+                    <stop offset="0.5" stop-color="#ff5b2e" stop-opacity="0.35" />
+                    <stop offset="1" stop-color="#ff5b2e" stop-opacity="0" />
+                  </radialGradient>
+                  <path id="shape-star" d="M400.0,190.0 L427.0,262.8 L504.6,266.0 L443.7,314.2 L464.7,389.0 L400.0,346.0 L335.3,389.0 L356.3,314.2 L295.4,266.0 L373.0,262.8 Z" />
+                  <path id="shape-moon" d="M440,215 A90,90 0 1,0 440,385 A72,72 0 1,1 440,215 Z" />
+                  <path id="shape-rocket" d="M400,180 C428,210 440,250 440,300 L440,350 L470,385 L430,378 L422,400 L378,400 L370,378 L330,385 L360,350 L360,300 C360,250 372,210 400,180 Z" />
+                </defs>
+                <circle cx="400" cy="300" r="160" fill="url(#planet-glow)" data-orbit-glow />
+                <g transform="rotate(-14 400 300)">
+                  <ellipse cx="400" cy="300" rx="330" ry="120" class="orbit__ghost" />
+                  <path id="orbit-path" class="orbit__path" data-orbit-path d="M70,300 A330,120 0 1,1 730,300 A330,120 0 1,1 70,300 Z" />
+                  <g class="orbit__satellite" data-orbit-satellite>
+                    <rect x="-26" y="-6" width="16" height="12" class="orbit__panel" />
+                    <rect x="10" y="-6" width="16" height="12" class="orbit__panel" />
+                    <rect x="-9" y="-9" width="18" height="18" rx="3" class="orbit__body" />
+                    <circle cx="0" cy="0" r="3" class="orbit__eye" />
+                  </g>
+                </g>
+                <path class="orbit__morph" data-morph data-morph-to="#shape-star, #shape-moon, #shape-rocket" d="M400,210 A90,90 0 1,1 399.9,210 Z" fill="url(#planet-fill)" />
+              </svg>
+            </div>
+          </section>
+
+          <!-- 5. СЛАЙДЕРЫ ---------------------------------------------------------------- -->
+          <!-- Перед слайдерами ракета уходит за правый край экрана. -->
+          <section class="fleet space-dust" id="fleet" data-flight="exit" data-flight-start="top 55%" data-occlude>
+            <i class="flight-marker" data-flight="dive" data-flight-start="top bottom" aria-hidden="true"></i>
+            <header class="fleet__head">
+              <p class="eyebrow">// флот</p>
+              <h2 class="section-title">Шесть слайдеров<br />без Swiper</h2>
+            </header>
+
+            <article class="demo">
+              <header class="demo__head"><span class="demo__num">01</span><h3>3D-кольцо</h3><p>Draggable + Inertia, доводка до ближайшей карточки</p></header>
+              <div class="ring" data-module="ring">
+                <div class="ring__stage" data-ring-stage tabindex="0" aria-label="3D-кольцо, листайте стрелками">
+                  <div class="ring__spinner" data-ring-spinner data-render="ring" data-photos="p01,p05,p08,p12,p13,p07,p11,p04"></div>
+                </div>
+                <div class="slider-ui">
+                  <button class="round-button" data-prev aria-label="Назад">←</button>
+                  <span class="slider-ui__counter" data-ring-counter>01 / 08</span>
+                  <button class="round-button" data-next aria-label="Вперёд">→</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="demo">
+              <header class="demo__head"><span class="demo__num">02</span><h3>Стопка карточек</h3><p>Смахните верхнюю — она уйдёт под низ</p></header>
+              <div class="stack" data-module="stack" tabindex="0" aria-label="Стопка карточек, листайте стрелками">
+                <div class="stack__deck" data-render="stack" data-photos="p26,p27,p28,p29,p30,p15"></div>
+                <div class="slider-ui">
+                  <button class="round-button" data-prev aria-label="Назад">←</button>
+                  <span class="slider-ui__counter" data-stack-counter>01 / 06</span>
+                  <button class="round-button" data-next aria-label="Вперёд">→</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="demo demo--wide">
+              <header class="demo__head"><span class="demo__num">03</span><h3>Бесконечная лента</h3><p>Петля без конца, пружинная доводка, наклон на скорости</p></header>
+              <div class="infinite" data-module="infinite">
+                <div class="infinite__viewport" data-infinite-viewport data-cursor="тяни" tabindex="0" aria-label="Бесконечная лента" data-render="infinite" data-photos="p16,p17,p18,p19,p20,p24,p25,p22"></div>
+                <div class="slider-ui">
+                  <button class="round-button" data-prev aria-label="Назад">←</button>
+                  <p class="infinite__title" data-infinite-title aria-live="polite"></p>
+                  <span class="slider-ui__counter" data-infinite-counter></span>
+                  <button class="round-button" data-next aria-label="Вперёд">→</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="demo demo--wide">
+              <header class="demo__head"><span class="demo__num">04</span><h3>Барабан · WebGL</h3><p>Тот же движок на цилиндре: отражение, изгиб и RGB-сдвиг</p></header>
+              <div class="infinite infinite--3d" data-module="infinite3d" data-curve="1.15">
+                <div class="infinite__viewport" data-infinite-viewport data-cursor="тяни" tabindex="0" aria-label="3D-барабан" data-render="infinite" data-photos="p02,p03,p06,p07,p09,p21,p23,p31"></div>
+                <div class="slider-ui">
+                  <button class="round-button" data-prev aria-label="Назад">←</button>
+                  <p class="infinite__title" data-infinite-title aria-live="polite"></p>
+                  <span class="slider-ui__counter" data-infinite-counter></span>
+                  <button class="round-button" data-next aria-label="Вперёд">→</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="demo demo--wide">
+              <header class="demo__head"><span class="demo__num">05</span><h3>Видеолента</h3><p>Наведите на карточку — она раскроется и запустит ролик NASA. Ленту можно тянуть</p></header>
+              <div class="vstrip" data-module="video-strip" data-cursor="смотри">
+                <div class="vstrip__track" data-vstrip-track data-render="videos"></div>
+              </div>
+            </article>
+
+            <!-- Слайдер на всю ширину экрана: без «стеклянной» подложки (demo--bleed). -->
+            <article class="demo demo--bleed">
+              <header class="demo__head"><span class="demo__num">06</span><h3>Шейдерный переход</h3><p>Тяните фото в любую сторону — влево, вправо, вверх или вниз. Или стрелками ←→↑↓</p></header>
+              <div class="shader-slider" data-module="shader">
+                <div class="shader-slider__stage" data-shader-stage data-cursor="тяни" tabindex="0" aria-label="Слайдер с шейдерным переходом: тяните фото или листайте стрелками" data-render="shader" data-photos="p16,p08,p25,p05,p32,p19"></div>
+                <p class="shader-slider__hint" aria-hidden="true">← → ↑ ↓ тяните в любую сторону</p>
+                <div class="shader-slider__overlay">
+                  <div class="shader-slider__caption">
+                    <h4 class="shader-slider__title" data-shader-title></h4>
+                    <p class="shader-slider__text" data-shader-text></p>
+                  </div>
+                  <div class="slider-ui">
+                    <button class="round-button" data-prev aria-label="Назад">←</button>
+                    <span class="slider-ui__counter" data-shader-counter></span>
+                    <button class="round-button" data-next aria-label="Вперёд">→</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <!-- 6. ВОДНАЯ ГЛАДЬ ------------------------------------------------------------- -->
+          <section class="liquid" id="liquid" data-module="liquid" data-occlude>
+            <div class="liquid__stage" data-liquid-stage data-cursor="капля">
+              <img class="photo liquid__photo" data-liquid-photo src="/photos/p16.jpg" width="1920" height="1111" alt="Космические скалы туманности Киля, снимок телескопа «Джеймс Уэбб»" loading="lazy" decoding="async" draggable="false" />
+              <div class="liquid__copy">
+                <p class="eyebrow">// водная гладь</p>
+                <h2 class="liquid__title">Коснись<br />туманности</h2>
+                <p class="liquid__hint">Проведите курсором — по снимку разойдутся волны. Кликните, чтобы бросить камень.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7. АРХИВ --------------------------------------------------------------------- -->
+          <section class="gallery space-dust" id="gallery" data-module="gallery" data-occlude>
+            <div class="gallery__pin" data-gallery-pin>
+              <header class="gallery__head">
+                <p class="eyebrow">// архив снимков</p>
+                <h2 class="section-title">Бесконечный архив</h2>
+                <p>Тяните в любую сторону, прокрутка тоже двигает сетку. Клик по снимку — открыть целиком.</p>
+              </header>
+              <div class="gallery__viewport" data-gallery-viewport data-cursor="тяни" tabindex="0" aria-label="Бесконечная галерея: тяните или листайте стрелками, Enter — открыть снимок">
+                <!-- data-count="40": 30 фото повторяются до 40 ячеек — ровно 5 рядов по 8 колонок (и 8 по 5 на узком экране).
+                     Число ячеек ОБЯЗАТЕЛЬНО кратно числу колонок, иначе неполный ряд даёт дыры при завороте. -->
+                <div class="gallery__grid" data-gallery-grid data-render="gallery" data-photos="all" data-count="40"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8. ЦЕНТР УПРАВЛЕНИЯ --------------------------------------------------------- -->
+          <!-- Ракета возвращается справа и в самом низу садится на станцию. -->
+          <footer class="mission" id="mission" data-module="mission" data-flight="mission">
+            <i class="flight-marker" data-flight="return" data-flight-start="top bottom" aria-hidden="true"></i>
+            <div class="mission__grid">
+              <div>
+                <p class="eyebrow">// центр управления</p>
+                <h2 class="section-title">Готовы,<br />когда готовы вы</h2>
+                <ol class="terminal" aria-label="Журнал пуска">
+                  <li data-terminal-line>&gt; телеметрия ............ OK</li>
+                  <li data-terminal-line>&gt; заправка .............. 100%</li>
+                  <li data-terminal-line>&gt; безопасность полигона .. ГОТОВО</li>
+                  <li data-terminal-line>&gt; погода ................ ГОТОВО</li>
+                  <li data-terminal-line>&gt; ждём команду_</li>
+                </ol>
+                <div class="launch">
+                  <span class="launch__count" data-countdown aria-live="polite">T−05</span>
+                  <button class="button button--primary launch__button" data-launch data-magnetic data-cursor="пуск">Пуск</button>
+                  <span class="launch__sparks" data-sparks aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+            <div class="marquee" aria-hidden="true">
+              <div class="marquee__track" data-marquee>
+                <span>ОРБИТА ✦ GSAP ✦ ScrollTrigger ✦ Three.js ✦ Draggable ✦ Flip ✦ MorphSVG ✦&nbsp;</span>
+                <span>ОРБИТА ✦ GSAP ✦ ScrollTrigger ✦ Three.js ✦ Draggable ✦ Flip ✦ MorphSVG ✦&nbsp;</span>
+              </div>
+            </div>
+            <i class="flight-marker flight-marker--bottom" data-flight="landing" data-flight-start="top bottom" aria-hidden="true"></i>
+            <p class="mission__legal">
+              Вымышленное агентство. GSAP 3 и Three.js · 2026. Фото и видео: NASA, ESA, CSA, STScI, JPL-Caltech, Kevin M. Gill
+              (CC BY) — подробно в CREDITS.md.
+            </p>
+          </footer>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
