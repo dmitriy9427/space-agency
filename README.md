@@ -1,6 +1,35 @@
-# ОРБИТА — космическое агентство
+<div align="center">
 
-Многостраничный сайт вымышленного космического агентства и одновременно учебная площадка для анимаций на **GSAP** (задействованы все 16 плагинов) и **Three.js**. Vite, чистый JavaScript без фреймворков, весь интерфейс на русском, фото и видео NASA.
+<a href="https://dmitriy9427.github.io/space-agency/"><img src="docs/screenshots/orbita-home.webp" alt="Первый экран" width="100%"></a>
+
+# 🚀 ОРБИТА
+
+**Сайт вымышленного космического агентства — все 16 плагинов GSAP, three.js и шейдеры**
+
+### [Открыть демо (десктоп) →](https://dmitriy9427.github.io/space-agency/)
+
+![GSAP](https://img.shields.io/badge/GSAP-0ae448?style=flat-square&logo=greensock&logoColor=black) ![three.js](https://img.shields.io/badge/three.js-000000?style=flat-square&logo=threedotjs&logoColor=white) ![GLSL](https://img.shields.io/badge/GLSL-5586a4?style=flat-square&logo=opengl&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646cff?style=flat-square&logo=vite&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-f7df1e?style=flat-square&logo=javascript&logoColor=black) ![тесты 205](https://img.shields.io/badge/%D1%82%D0%B5%D1%81%D1%82%D1%8B_205-2ea44f?style=flat-square) [![Деплой](https://github.com/dmitriy9427/space-agency/actions/workflows/pages.yml/badge.svg)](https://github.com/dmitriy9427/space-agency/actions/workflows/pages.yml)
+
+</div>
+
+| Слайдеры | Направления |
+| --- | --- |
+| <img src="docs/screenshots/orbita-sliders.webp" alt="Слайдеры"> | <img src="docs/screenshots/orbita-destinations.webp" alt="Направления"> |
+
+## Коротко
+
+| | |
+| :---: | --- |
+| 🚀 | **3D-ракета** — летит по скроллу, three.js с ленивой загрузкой |
+| ✨ | **Все плагины GSAP** — ScrollTrigger, SplitText, Flip, Draggable, MorphSVG… — с объяснением в docs |
+| 🌀 | **Шейдерные переходы** — между страницами, без перезагрузки |
+| 💧 | **Вода на GPU** — симуляция ряби в шейдере |
+| ♾ | **Бесконечная галерея** — фото NASA, драг и инерция |
+| 📚 | **Документация** — учебник по проекту и README в каждом модуле, 205 тестов |
+
+Автор — [Дмитрий Рябов](https://dmitriy9427.github.io/resume/), frontend-разработчик.
+
+---
 
 > **Сайт сейчас рассчитан на десктоп.** Все места, которые нужно доработать для телефона, помечены в коде `МОБИЛКА:`. Их список — [docs/11-mobile.md](docs/11-mobile.md).
 
