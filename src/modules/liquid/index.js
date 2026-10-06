@@ -4,9 +4,8 @@
  * дождь. Волны считаются на GPU (волновое уравнение), только пока секция
  * на экране.
  *
- * МОБИЛКА: рябь рисуется по pointermove — пальцем тоже, но жест одновременно
- * прокручивает страницу. Варианты для мобилки — в effects.css (.liquid__stage)
- * и docs/11-mobile.md.
+ * Телефон: рисования пальцем нет (жест — это прокрутка страницы); рябь от тапа
+ * (капля) и от «дождя» в покое. Мышь рисует рябь движением, как раньше.
  * @module liquid
  */
 import { gsap } from '../../core/gsap.js'
@@ -60,6 +59,7 @@ export async function init(el, ctx) {
     stage,
     'pointermove',
     (event) => {
+      if (event.pointerType !== 'mouse') return
       const point = pointerToUv(event.clientX, event.clientY, stage.getBoundingClientRect())
       const now = performance.now()
 

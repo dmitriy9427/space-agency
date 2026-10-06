@@ -37,7 +37,7 @@ import { supportsWebGL } from '../../core/env.js'
 import { createDisposer } from '../../core/lifecycle.js'
 import { createRenderLoop, observeSize } from '../../core/webgl.js'
 import { damp } from '../../core/math.js'
-import { buildFlightTimeline, coversViewport, sampleFlight, thrustWithVelocity } from './flight.js'
+import { buildFlightTimeline, coversViewport, sampleFlight, thrustWithVelocity, waypointsFor } from './flight.js'
 
 /** Опорная линия: секция «приходит», когда её верх на этой высоте экрана. */
 export const FLIGHT_START = 'top 65%'
@@ -72,7 +72,9 @@ export async function init(canvas, ctx) {
   const rebuild = () => {
     timeline = buildFlightTimeline(
       markers.map((m) => ({ id: m.id, at: m.trigger.start })),
-      undefined,
+      // Телефон в портрете — своя таблица (ракета не поверх текста). Поворот
+      // экрана вызывает refresh → таблица выбирается заново.
+      waypointsFor(window.innerWidth / window.innerHeight),
       ScrollTrigger.maxScroll(window),
     )
   }

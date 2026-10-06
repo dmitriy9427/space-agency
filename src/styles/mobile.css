@@ -1,0 +1,158 @@
+/*
+ * Мобильная версия (телефон): всё в одном файле, подключается последним.
+ *
+ * Было: сайт делался для компьютера, места для доработки помечались «МОБИЛКА»
+ * (docs/11-mobile.md). Здесь — их решения. Что не CSS, а логика, — в модулях:
+ *   nav               — бургер и меню на весь экран;
+ *   rocket/flight.js  — своя траектория для портрета (WAYPOINTS_PORTRAIT);
+ *   sliders/stack     — палец тянет только вбок;
+ *   sliders/shader    — листание только горизонтальным свайпом;
+ *   liquid            — рябь от тапа и дождя, без рисования пальцем;
+ *   gallery           — без наклона карточек на тач-экране.
+ */
+
+/* --- подсказки: для мыши и для пальца — свои тексты ------------------------------ */
+.for-touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .for-mouse {
+    display: none;
+  }
+
+  .for-touch {
+    display: inline;
+  }
+}
+
+/* --- жесты: вертикальный свайп — это прокрутка страницы ------------------------ */
+@media (pointer: coarse) {
+  .stack__deck,
+  .shader-slider__stage,
+  .liquid__stage {
+    touch-action: pan-y;
+  }
+}
+
+@media (max-width: 760px) {
+  /* --- типографика ------------------------------------------------------------ */
+
+  /* Широкий шрифт заглавными: на 390 px «Шесть слайдеров» не влезал и обрезался. */
+  .section-title {
+    font-size: clamp(1.55rem, 7.4vw, 2.4rem);
+    overflow-wrap: anywhere;
+  }
+
+  /* --- манифест: справа — «коридор» для взлетающей ракеты ----------------------- */
+  .manifesto__text {
+    max-width: 72%;
+  }
+
+  /* --- флот: шесть слайдеров ------------------------------------------------- */
+
+  .fleet {
+    gap: 72px;
+    padding: 12vh var(--gutter);
+    border-radius: 28px 28px 0 0;
+  }
+
+  /* Главное: элементы сетки по умолчанию не уже своего содержимого, а дорожка
+     видеоленты — max-content. Без min-width: 0 она растягивала колонку шире
+     экрана, и края карточек и подписей обрезались. */
+  .fleet > *,
+  .demo,
+  .demo > * {
+    min-width: 0;
+  }
+
+  .demo {
+    gap: 22px;
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .demo__head {
+    gap: 2px 12px;
+  }
+
+  .demo__head h3 {
+    font-size: 1.25rem;
+  }
+
+  .demo__head p {
+    font-size: 0.9rem;
+  }
+
+  /* 3D-кольцо: карточки крупнее, иначе 8 штук на телефоне — мелочь. */
+  .ring__stage {
+    height: 420px;
+  }
+
+  .ring__card {
+    width: 52vw;
+  }
+
+  .stack__deck {
+    height: 480px;
+  }
+
+  .infinite__viewport {
+    height: 440px;
+  }
+
+  .infinite__slide {
+    width: 64vw;
+    height: 380px;
+  }
+
+  .infinite--3d .infinite__viewport {
+    height: 460px;
+  }
+
+  /* Видеолента: раскрытие по тапу уже есть; карточки уже (раскрытая — ×3). */
+  .vstrip {
+    --vstrip-card-width: 180px;
+  }
+
+  .vstrip__card {
+    height: 420px;
+  }
+
+  .shader-slider__stage {
+    height: 75svh;
+  }
+
+  /* --- миссии: горизонтальная лента ------------------------------------------- */
+
+  .hscroll {
+    --hscroll-card: 78vw;
+  }
+
+  /* --- направления: полноэкранные слайды -------------------------------------- */
+
+  /* Мини-схема маршрута на узком экране перекрывает заголовок — прячем. */
+  .route {
+    display: none;
+  }
+
+  .fslide__content {
+    right: var(--gutter);
+    bottom: 9svh;
+    max-width: none;
+  }
+
+  .fslide__title {
+    font-size: clamp(2.4rem, 13vw, 3.6rem);
+  }
+
+  .fslide__tagline {
+    font-size: 1rem;
+  }
+
+  /* Счётчик и точки — наверх, под шапку: внизу они наезжали на цифры. */
+  .fslides__ui {
+    top: 88px;
+    bottom: auto;
+  }
+}

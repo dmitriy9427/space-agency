@@ -10,6 +10,10 @@
  *    (`shouldShowHeader`) — больше места для контента.
  * 3. Полоса прогресса прокрутки страницы под шапкой.
  * 4. Подсвечивает пункт текущей страницы (`aria-current="page"`).
+ * 5. Телефон (до 860px): бургер и меню на весь экран. Панель раскрывается
+ *    кругом из точки бургера (clip-path), пункты влетают по очереди — один
+ *    GSAP-таймлайн, закрытие — он же в обратную сторону. Пока открыто:
+ *    страница не прокручивается, Tab ходит только по меню, Esc закрывает.
  *
  * Плавная прокрутка: если включён ScrollSmoother — его `scrollTo`; если нет
  * (телефон, reduced motion) — плагин ScrollToPlugin.
@@ -90,6 +94,84 @@ export function init(el, ctx) {
 
   markCurrent()
   if (ctx.bus) d.add(ctx.bus.on('page:change', markCurrent))
+
+  // --- мобильное меню ---------------------------------------------------------------------
+  const burger = el.querySelector('.nav__burger')
+  const panel = el.querySelector('.nav__links')
+
+  if (burger && panel) {
+    const links = [...panel.querySelectorAll('a')]
+    const origin = () => {
+      const r = burger.getBoundingClientRect()
+      return `${r.left + r.width / 2}px ${r.top + r.height / 2}px`
+    }
+    // immediateRender: false — иначе fromTo сразу применил бы стартовые значения
+    // (невидимые пункты, свёрнутая панель) и на десктопе, где меню — строка ссылок.
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } })
+    tl.fromTo(
+      panel,
+      { clipPath: () => `circle(0px at ${origin()})` },
+      { clipPath: () => `circle(150% at ${origin()})`, duration: ctx.reduced ? 0 : 0.7, ease: 'power3.inOut' },
+    ).fromTo(
+      links,
+      { y: 40, opacity: 0 },
+      { y: 0, opacity: 1, duration: ctx.reduced ? 0 : 0.5, ease: 'power3.out', stagger: 0.05 },
+      ctx.reduced ? 0 : 0.3,
+    )
+
+    panel.setAttribute('tabindex', '-1')
+    let open = false
+    const setOpen = (next) => {
+      if (next === open) return
+      open = next
+      el.classList.toggle('is-open', open)
+      burger.setAttribute('aria-expanded', String(open))
+      burger.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню')
+      document.documentElement.style.overflow = open ? 'hidden' : ''
+      if (open) {
+        tl.invalidate().play(0)
+        // Фокус — на саму панель (не на первый пункт: иначе он «подсвечен» рамкой).
+        panel.focus({ preventScroll: true })
+      } else {
+        tl.reverse()
+      }
+    }
+
+    d.listen(burger, 'click', () => setOpen(!open))
+    // Любая ссылка в меню закрывает его (якорь прокрутит, страницу сменит роутер).
+    d.listen(panel, 'click', (event) => {
+      if (event.target.closest('a')) setOpen(false)
+    })
+    d.listen(document, 'keydown', (event) => {
+      if (!open) return
+      if (event.key === 'Escape') {
+        setOpen(false)
+        burger.focus()
+      }
+      // Tab — по кругу внутри меню (бургер + пункты).
+      if (event.key === 'Tab') {
+        const items = [burger, ...links]
+        const i = document.activeElement === panel ? -1 : items.indexOf(document.activeElement)
+        const next = event.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : (i + 1) % items.length
+        event.preventDefault()
+        items[next].focus()
+      }
+    })
+    // Окно стало шире — меню не нужно; закрываем и сбрасываем стили.
+    const wide = window.matchMedia('(min-width: 861px)')
+    const onWide = () => {
+      if (!wide.matches) return
+      setOpen(false)
+      tl.progress(0).pause()
+      gsap.set([panel, ...links], { clearProps: 'all' })
+    }
+    d.listen(wide, 'change', onWide)
+    if (ctx.bus) d.add(ctx.bus.on('page:change', () => setOpen(false)))
+    d.add(() => {
+      tl.kill()
+      document.documentElement.style.overflow = ''
+    })
+  }
 
   return { destroy: () => d.dispose() }
 }

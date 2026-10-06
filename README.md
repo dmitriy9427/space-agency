@@ -6,7 +6,7 @@
 
 **Сайт вымышленного космического агентства — все 16 плагинов GSAP, three.js и шейдеры**
 
-### [Открыть демо (десктоп) →](https://dmitriy9427.github.io/space-agency/)
+### [Открыть демо →](https://dmitriy9427.github.io/space-agency/)
 
 ![GSAP](https://img.shields.io/badge/GSAP-0ae448?style=flat-square&logo=greensock&logoColor=black) ![three.js](https://img.shields.io/badge/three.js-000000?style=flat-square&logo=threedotjs&logoColor=white) ![GLSL](https://img.shields.io/badge/GLSL-5586a4?style=flat-square&logo=opengl&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646cff?style=flat-square&logo=vite&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-f7df1e?style=flat-square&logo=javascript&logoColor=black) ![тесты 205](https://img.shields.io/badge/%D1%82%D0%B5%D1%81%D1%82%D1%8B_205-2ea44f?style=flat-square) [![Деплой](https://github.com/dmitriy9427/space-agency/actions/workflows/pages.yml/badge.svg)](https://github.com/dmitriy9427/space-agency/actions/workflows/pages.yml)
 
@@ -31,7 +31,7 @@
 
 ---
 
-> **Сайт сейчас рассчитан на десктоп.** Все места, которые нужно доработать для телефона, помечены в коде `МОБИЛКА:`. Их список — [docs/11-mobile.md](docs/11-mobile.md).
+> **Есть мобильная версия:** меню-бургер, своя траектория ракеты для телефона, жесты не мешают прокрутке. Что и как сделано — [docs/11-mobile.md](docs/11-mobile.md).
 
 ```bash
 npm install

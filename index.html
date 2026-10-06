@@ -33,7 +33,8 @@
       </a>
       <!-- Ссылки на страницы перехватывает роутер (переход-занавес), ссылки с # на
            текущей странице — модуль nav (плавная прокрутка). -->
-      <nav class="nav__links" aria-label="Разделы">
+      <button class="nav__burger" type="button" aria-controls="nav-links" aria-expanded="false" aria-label="Открыть меню"><span></span><span></span></button>
+      <nav class="nav__links" id="nav-links" aria-label="Разделы">
         <a href="./">Главная</a>
         <a href="missions.html">Миссии</a>
         <a href="destinations.html">Направления</a>
@@ -44,9 +45,6 @@
       <span class="nav__progress" data-nav-progress aria-hidden="true"></span>
     </header>
 
-    <!-- МОБИЛКА: временная плашка для узких экранов. Когда мобильная версия будет готова
-         (docs/11-mobile.md), удалите этот блок во всех трёх HTML-файлах и стили .desktop-note. -->
-    <p class="desktop-note" role="note">Сайт пока сделан для компьютера — на телефоне часть эффектов упрощена или недоступна.</p>
     <div id="smooth-wrapper">
       <div id="smooth-content">
         <!-- СОДЕРЖИМОЕ СТРАНИЦЫ: роутер подменяет весь <main data-page> при переходе. -->
@@ -240,7 +238,7 @@
             </article>
 
             <article class="demo demo--wide">
-              <header class="demo__head"><span class="demo__num">05</span><h3>Видеолента</h3><p>Наведите на карточку — она раскроется и запустит ролик NASA. Ленту можно тянуть</p></header>
+              <header class="demo__head"><span class="demo__num">05</span><h3>Видеолента</h3><p><span class="for-mouse">Наведите на карточку — она раскроется и запустит ролик NASA. Ленту можно тянуть</span><span class="for-touch">Коснитесь карточки — она раскроется и запустит ролик NASA. Ленту можно листать пальцем</span></p></header>
               <div class="vstrip" data-module="video-strip" data-cursor="смотри">
                 <div class="vstrip__track" data-vstrip-track data-render="videos"></div>
               </div>
@@ -248,7 +246,7 @@
 
             <!-- Слайдер на всю ширину экрана: без «стеклянной» подложки (demo--bleed). -->
             <article class="demo demo--bleed">
-              <header class="demo__head"><span class="demo__num">06</span><h3>Шейдерный переход</h3><p>Тяните фото в любую сторону — влево, вправо, вверх или вниз. Или стрелками ←→↑↓</p></header>
+              <header class="demo__head"><span class="demo__num">06</span><h3>Шейдерный переход</h3><p><span class="for-mouse">Тяните фото в любую сторону — влево, вправо, вверх или вниз. Или стрелками ←→↑↓</span><span class="for-touch">Смахните фото влево или вправо — сменится с шейдерным переходом</span></p></header>
               <div class="shader-slider" data-module="shader">
                 <div class="shader-slider__stage" data-shader-stage data-cursor="тяни" tabindex="0" aria-label="Слайдер с шейдерным переходом: тяните фото или листайте стрелками" data-render="shader" data-photos="p16,p08,p25,p05,p32,p19"></div>
                 <p class="shader-slider__hint" aria-hidden="true">← → ↑ ↓ тяните в любую сторону</p>
@@ -274,7 +272,7 @@
               <div class="liquid__copy">
                 <p class="eyebrow">// водная гладь</p>
                 <h2 class="liquid__title">Коснись<br />туманности</h2>
-                <p class="liquid__hint">Проведите курсором — по снимку разойдутся волны. Кликните, чтобы бросить камень.</p>
+                <p class="liquid__hint"><span class="for-mouse">Проведите курсором — по снимку разойдутся волны. Кликните, чтобы бросить камень.</span><span class="for-touch">Коснитесь снимка — бросите камень, и по воде разойдутся волны.</span></p>
               </div>
             </div>
           </section>

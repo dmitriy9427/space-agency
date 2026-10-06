@@ -22,6 +22,7 @@ import './styles/sections.css'
 import './styles/sliders.css'
 import './styles/effects.css'
 import './styles/pages.css'
+import './styles/mobile.css' // телефон — последним, поверх всего
 
 import { startApp } from './app.js'
 

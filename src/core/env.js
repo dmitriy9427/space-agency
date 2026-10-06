@@ -25,8 +25,8 @@ export const prefersReducedMotion = () => mq('(prefers-reduced-motion: reduce)')
 
 /**
  * Основное устройство ввода — палец (нет точного курсора и наведения).
- * МОБИЛКА: по этой проверке сейчас выключаются курсор и плавный скролл;
- * при доработке мобильной версии — главный «переключатель» поведения.
+ * Главный «переключатель» мобильного поведения: по нему выключаются курсор
+ * и плавный скролл, жесты отдают вертикальный свайп странице (docs/11-mobile.md).
  */
 export const isCoarsePointer = () => mq('(pointer: coarse)')
 
@@ -103,7 +103,7 @@ export function getQuality(input = {}) {
   if (memory >= 8) score += 2
   else if (memory >= 4) score += 1
   if (width >= 1024) score += 1
-  if (coarse) score -= 1 // МОБИЛКА: телефоны по умолчанию получают уровень пониже
+  if (coarse) score -= 1 // телефоны по умолчанию получают уровень пониже
   if (reduced) score -= 2
 
   const tier = score >= 4 ? 'high' : score >= 2 ? 'medium' : 'low'

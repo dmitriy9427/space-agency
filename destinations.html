@@ -31,7 +31,8 @@
       </a>
       <!-- Ссылки на страницы перехватывает роутер (переход-занавес), ссылки с # на
            текущей странице — модуль nav (плавная прокрутка). -->
-      <nav class="nav__links" aria-label="Разделы">
+      <button class="nav__burger" type="button" aria-controls="nav-links" aria-expanded="false" aria-label="Открыть меню"><span></span><span></span></button>
+      <nav class="nav__links" id="nav-links" aria-label="Разделы">
         <a href="./">Главная</a>
         <a href="missions.html">Миссии</a>
         <a href="destinations.html">Направления</a>
@@ -42,9 +43,6 @@
       <span class="nav__progress" data-nav-progress aria-hidden="true"></span>
     </header>
 
-    <!-- МОБИЛКА: временная плашка для узких экранов. Когда мобильная версия будет готова
-         (docs/11-mobile.md), удалите этот блок во всех трёх HTML-файлах и стили .desktop-note. -->
-    <p class="desktop-note" role="note">Сайт пока сделан для компьютера — на телефоне часть эффектов упрощена или недоступна.</p>
     <div id="smooth-wrapper">
       <div id="smooth-content">
         <!-- СОДЕРЖИМОЕ СТРАНИЦЫ: роутер подменяет весь <main data-page> при переходе. -->
@@ -64,7 +62,7 @@
                 <button type="button" data-fslides-dot aria-label="Уран"></button>
                 <button type="button" data-fslides-dot aria-label="Нептун"></button>
               </div>
-              <p class="fslides__hint">Колесо, свайп или ↑ ↓</p>
+              <p class="fslides__hint"><span class="for-mouse">Колесо, свайп или ↑ ↓</span><span class="for-touch">Свайп вверх или вниз</span></p>
             </div>
 
             <!-- Мини-схема маршрута: кораблик летит по кривой (MotionPath) к текущей планете. -->

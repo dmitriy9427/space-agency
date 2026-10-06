@@ -51,8 +51,8 @@ export async function startApp(registries) {
   // Не на тач-экранах (там родная инерция лучше) и не при reduced motion.
   // effects: false — параллакс (data-speed / data-lag) включаем сами для
   // каждой страницы в mountPage(), иначе после перехода он бы не работал.
-  // МОБИЛКА: сейчас сайт рассчитан на десктоп; ScrollSmoother на тач-экранах
-  // уже выключен этой проверкой — см. docs/11-mobile.md.
+  // Тач-экраны: без ScrollSmoother — родная прокрутка телефона быстрее и
+  // привычнее (docs/11-mobile.md).
   const smoother =
     reduced || isCoarsePointer()
       ? null

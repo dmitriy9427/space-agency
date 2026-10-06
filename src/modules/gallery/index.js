@@ -31,9 +31,9 @@
  * - Кадры считаем только пока сетка движется и секция видна: в покое цикл
  *   выходит в первой же строке и почти ничего не стоит.
  *
- * МОБИЛКА: пальцем сетка тянется (Observer type 'touch'), вертикальный свайп
- * отдаётся странице (touch-action: pan-y). Размеры для телефона — черновые
- * (медиазапрос в effects.css); на тач-экране стоит выключить наклон (tilt: 0).
+ * Телефон: пальцем сетка тянется (Observer type 'touch'), вертикальный свайп
+ * отдаётся странице (touch-action: pan-y). Размеры — медиазапрос в effects.css;
+ * наклона карточек на тач-экране нет (дёргается под пальцем).
  *
  * ─── Как перенести ─────────────────────────────────────────────────────────
  * Нужны: эта функция, `grid.js`, `lightbox.js` (по желанию), стили `.gallery*`
@@ -43,6 +43,7 @@
  * @module gallery
  */
 import { gsap, Observer, ScrollTrigger } from '../../core/gsap.js'
+import { isCoarsePointer } from '../../core/env.js'
 import { createDisposer, onViewport } from '../../core/lifecycle.js'
 import { getPhoto } from '../../content/photos.js'
 import { centerOn, columnSpeed, squeezeScale, velocityUnit, wrapCell } from './grid.js'
@@ -74,6 +75,7 @@ export const OPTIONS = {
  */
 export function init(el, ctx) {
   const d = createDisposer()
+  const coarse = isCoarsePointer()
   const viewport = el.querySelector('[data-gallery-viewport]')
   const grid = el.querySelector('[data-gallery-grid]')
   const items = Array.from(el.querySelectorAll('[data-gallery-item]'))
@@ -137,8 +139,8 @@ export function init(el, ctx) {
     const lagY = ty - cy
     const scale = reduced ? 1 : squeezeScale(Math.max(Math.abs(lagX), Math.abs(lagY)))
     // Наклон «навстречу движению»: тянем вниз — нижний край уходит от зрителя.
-    const rx = reduced ? 0 : -velocityUnit(lagY) * OPTIONS.tilt
-    const ry = reduced ? 0 : velocityUnit(lagX) * OPTIONS.tilt
+    const rx = reduced || coarse ? 0 : -velocityUnit(lagY) * OPTIONS.tilt
+    const ry = reduced || coarse ? 0 : velocityUnit(lagX) * OPTIONS.tilt
     const tilt = rx || ry ? ` perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)` : ''
 
     cells.forEach((cell) => {

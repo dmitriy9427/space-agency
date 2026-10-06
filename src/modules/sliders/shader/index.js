@@ -28,15 +28,12 @@
  * полного перехода; длительность — в animateTo; порог «довести или откатить» —
  * shouldComplete в logic.js.
  *
- * МОБИЛКА: на телефоне вертикальный свайп по слайдеру сейчас перехватывает
- * прокрутку страницы (у сцены touch-action: none в sliders.css). Для мобилки
- * нужно либо оставить только горизонтальные свайпы (lockAxis + touch-action:
- * pan-y), либо сделать слайдер закреплённым на весь экран (pin), где
- * вертикальный свайп — это и есть листание. Подробнее — docs/11-mobile.md.
+ * Телефон: листание только горизонтальными свайпами (lockAxis + проверка оси),
+ * у сцены touch-action: pan-y — вертикальный свайп прокручивает страницу.
  * @module sliders/shader
  */
 import { gsap, Observer, SplitText } from '../../../core/gsap.js'
-import { supportsWebGL } from '../../../core/env.js'
+import { isCoarsePointer, supportsWebGL } from '../../../core/env.js'
 import { createDisposer, onViewport } from '../../../core/lifecycle.js'
 import { loadImage } from '../../../core/media.js'
 import { DIRECTIONS, dragIntent, keyIntent, neighbour, shouldComplete } from './logic.js'
@@ -189,6 +186,7 @@ export async function init(el, ctx) {
   let ignoreGesture = false
   /** Идёт ли анимация перехода (доводка или откат). */
   const animating = () => !!tween?.isActive()
+  const touchOnly = isCoarsePointer()
   const observer = Observer.create({
     target: stage,
     type: 'pointer,touch',
@@ -201,6 +199,8 @@ export async function init(el, ctx) {
     },
     onDrag: (self) => {
       if (ignoreGesture) return
+      // Палец: вертикальный жест — это прокрутка страницы, не листание.
+      if (touchOnly && self.axis === 'y') return
       dragX += self.deltaX
       dragY += self.deltaY
 

@@ -29,11 +29,12 @@
  * перед ними `killTweensOf` — так на карточку никогда не действуют два
  * твина сразу. Пока идёт анимация (`busy`), новые нажатия игнорируются.
  *
- * МОБИЛКА: у колоды touch-action: none (sliders.css) — пальцем нельзя
- * прокрутить страницу, начав жест на стопке. См. docs/11-mobile.md.
+ * Телефон: карточка тянется только по горизонтали (type 'x'), а у колоды
+ * touch-action: pan-y — вертикальный жест остаётся прокруткой страницы.
  * @module sliders/stack
  */
 import { gsap, Draggable } from '../../../core/gsap.js'
+import { isCoarsePointer } from '../../../core/env.js'
 import { createDisposer } from '../../../core/lifecycle.js'
 import { createExitHistory, createStack, createVelocityTracker, pressAction, stackPose, swipeDecision } from './state.js'
 /** Длительности, секунды. */
@@ -162,7 +163,8 @@ export function init(el, ctx) {
   // --- перетаскивание: Draggable на каждой карточке, включён только у верхней ----
   const draggables = cards.map((card) =>
     Draggable.create(card, {
-      type: 'x,y',
+      // Палец: только вбок — вертикальный свайп прокручивает страницу.
+      type: isCoarsePointer() ? 'x' : 'x,y',
       zIndexBoost: false, // z-index управляем сами (поза стопки)
       onPress() {
         if (busy) return

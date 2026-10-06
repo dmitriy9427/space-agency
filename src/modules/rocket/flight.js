@@ -49,6 +49,32 @@ export const WAYPOINTS = {
   landing: { x: 0.55, y: -0.05, scale: 0.85, roll: 360, yaw: 24, thrust: 0.04, ground: 0 },
 }
 
+/**
+ * Тот же сценарий для портретного экрана (телефон). Текст там занимает почти
+ * всю ширину, поэтому ракета меньше и держится в свободных зонах: на старте —
+ * внизу справа на площадке, в полёте — у правого края над/под текстом, садится
+ * снова внизу. Подобрано по скриншотам 390×844.
+ * @type {Record<string, FlightState>}
+ */
+export const WAYPOINTS_PORTRAIT = {
+  hero: { x: 0.5, y: -0.98, scale: 0.62, roll: 0, yaw: 24, thrust: 0.14, ground: 0 },
+  manifesto: { x: 0.75, y: -0.2, scale: 0.45, roll: -3, yaw: 22, thrust: 0.9, ground: 1 },
+  story: { x: 0.45, y: 0.3, scale: 0.7, roll: -3, yaw: 22, thrust: 1, ground: 1 },
+  apogee: { x: 0.55, y: 0.6, scale: 0.55, roll: 0, yaw: 22, thrust: 0.5, ground: 1 },
+  orbit: { x: 0.7, y: -0.55, scale: 0.42, roll: 180, yaw: 22, thrust: 0.7, ground: 1 },
+  dive: { x: 0.75, y: -0.8, scale: 0.42, roll: 185, yaw: 22, thrust: 0.9, ground: 1 },
+  exit: { x: 1.9, y: -0.9, scale: 0.5, roll: 200, yaw: 22, thrust: 1, ground: 1 },
+  return: { x: 1.9, y: 0.5, scale: 0.55, roll: 160, yaw: 22, thrust: 0.6, ground: 1 },
+  mission: { x: 0.6, y: 0.75, scale: 0.5, roll: 180, yaw: 22, thrust: 0.5, ground: 1 },
+  landing: { x: 0.55, y: -0.98, scale: 0.62, roll: 360, yaw: 24, thrust: 0.04, ground: 0 },
+}
+
+/** Портретный экран (телефон в вертикальном положении). */
+export const isPortrait = (aspect) => aspect < 0.8
+
+/** Таблица точек под форму экрана. */
+export const waypointsFor = (aspect) => (isPortrait(aspect) ? WAYPOINTS_PORTRAIT : WAYPOINTS)
+
 const KEYS = ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground']
 
 /** Интерполяция всех полей состояния. */
@@ -119,14 +145,12 @@ export function sampleFlight(timeline, scroll) {
  */
 export function toWorld(state, aspect, halfHeight) {
   const halfWidth = halfHeight * aspect
-  // На узких экранах ракета меньше и жмётся к краю, чтобы не закрывать текст.
-  // МОБИЛКА: черновая подстройка под портретный экран (меньше масштаб, ниже по
-  // экрану). Для мобильной версии, скорее всего, нужна своя таблица WAYPOINTS.
-  const portrait = aspect < 0.8
+  // На узких экранах ракета меньше. Где ей быть на телефоне — решает отдельная
+  // таблица WAYPOINTS_PORTRAIT (waypointsFor), здесь только масштаб и край.
+  const portrait = isPortrait(aspect)
   const fit = clamp(aspect / 1.2, portrait ? 0.34 : 0.42, 1)
-  const maxX = portrait ? 0.6 : 0.9
-  // В портретной ориентации текст занимает почти всю ширину: ракета ниже.
-  const shiftY = portrait ? -0.4 : 0
+  const maxX = portrait ? 0.75 : 0.9
+  const shiftY = 0
 
   // |x| > 1 — ракета намеренно за краем экрана: не прижимаем.
   const x = Math.abs(state.x) > 1 ? state.x : clamp(state.x, -maxX, maxX)

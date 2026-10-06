@@ -25,9 +25,8 @@
  * `motionPath: { path, start, end }` — от доли пути прошлой планеты до доли
  * пути новой.
  *
- * МОБИЛКА: Observer уже понимает свайпы (type: 'touch'), но на телефоне
- * мини-схема перекрывает текст — её нужно спрятать или уменьшить (pages.css,
- * .route), а заголовки уменьшить. docs/11-mobile.md.
+ * Телефон: свайпы понимает Observer (type: 'touch'); мини-схема скрыта,
+ * заголовки меньше, счётчик наверху — mobile.css.
  * @module fullscreen-slides
  */
 import { gsap, Observer, SplitText } from '../../core/gsap.js'

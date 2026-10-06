@@ -292,11 +292,100 @@ button {
   transform-origin: left;
 }
 
-/* МОБИЛКА: на узких экранах меню просто прячется — навигации нет совсем.
-   Для мобильной версии нужна кнопка-«бургер» и выезжающее меню (docs/11-mobile.md). */
+/* --- мобильное меню (до 860px) ---------------------------------------------------
+   Бургер в шапке; меню — панель на весь экран со звёздным фоном. Открытие —
+   GSAP-анимация в modules/nav (круг из точки бургера + пункты по очереди). */
+.nav__burger {
+  display: none;
+}
+
 @media (max-width: 860px) {
+  .nav__burger {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: rgb(5 6 13 / 55%);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+  }
+
+  .nav__burger span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    border-radius: 2px;
+    background: var(--fg);
+    transition: transform 0.4s var(--ease-out);
+  }
+
+  .nav.is-open .nav__burger span:first-child {
+    transform: translateY(3.75px) rotate(45deg);
+  }
+
+  .nav.is-open .nav__burger span:last-child {
+    transform: translateY(-3.75px) rotate(-45deg);
+  }
+
+  .nav__logo {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Панель меню: скрыта, пока не открыта (visibility — не попадает в Tab). */
   .nav__links {
-    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 96px var(--gutter) 48px;
+    border: 0;
+    border-radius: 0;
+    background:
+      radial-gradient(60% 40% at 85% 0%, rgb(255 92 57 / 22%), transparent 70%),
+      radial-gradient(50% 40% at 0% 100%, rgb(70 200 255 / 18%), transparent 70%),
+      var(--bg);
+    backdrop-filter: none;
+    visibility: hidden;
+    clip-path: circle(0 at calc(100% - var(--gutter) - 22px) 40px);
+  }
+
+  .nav.is-open .nav__links {
+    visibility: visible;
+  }
+
+  .nav__links a {
+    padding: 10px 0;
+    border-radius: 0;
+    font-family: var(--display);
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .nav__links a:hover,
+  .nav__links a[aria-current='page'] {
+    background: none;
+    color: var(--accent);
+  }
+
+  /* Пока меню открыто, шапка не прячется и подложка не нужна. */
+  .nav.is-open {
+    transform: none;
+  }
+
+  .nav.is-open::before {
+    opacity: 0;
   }
 }
 
@@ -373,32 +462,6 @@ button {
   font-size: 1.1rem;
   font-weight: 600;
   line-height: 1.15;
-}
-
-/* --- плашка «пока для компьютера» ---------------------------------------------------
-   МОБИЛКА: временная. Показывается на узких экранах и тач-устройствах. Удалить вместе
-   с разметкой .desktop-note в HTML, когда будет мобильная версия. */
-.desktop-note {
-  display: none;
-}
-
-@media (max-width: 900px), (pointer: coarse) {
-  .desktop-note {
-    position: fixed;
-    z-index: 20;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    display: block;
-    padding: 12px 16px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgb(5 6 13 / 88%);
-    backdrop-filter: blur(10px);
-    font-size: 0.85rem;
-    color: var(--muted);
-    pointer-events: none;
-  }
 }
 
 /* --- отладка ---------------------------------------------------------------- */

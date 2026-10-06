@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WAYPOINTS, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld } from './flight.js'
+import { WAYPOINTS, WAYPOINTS_PORTRAIT, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
 
 describe('rocket/flight', () => {
   const timeline = buildFlightTimeline([
@@ -57,7 +57,16 @@ describe('rocket/flight', () => {
     expect(wide.y).toBeCloseTo(2.4)
     expect(wide.scale).toBe(1)
     expect(tall.scale).toBeLessThan(0.5)
-    expect(tall.y).toBeLessThan(wide.y)
+    // В портрете ракета прижата сильнее (x ≤ 0.75 полуширины); высоту не сдвигаем —
+    // её задаёт своя таблица точек (WAYPOINTS_PORTRAIT).
+    expect(tall.x).toBeCloseTo(0.75 * 3 * (9 / 16))
+    expect(tall.y).toBeCloseTo(wide.y)
+  })
+
+  it('waypointsFor: портрету — своя таблица с теми же точками', () => {
+    expect(waypointsFor(16 / 9)).toBe(WAYPOINTS)
+    expect(waypointsFor(9 / 16)).toBe(WAYPOINTS_PORTRAIT)
+    expect(Object.keys(WAYPOINTS_PORTRAIT).sort()).toEqual(Object.keys(WAYPOINTS).sort())
   })
 
   it('прижимает точки к пределу прокрутки (посадка внизу страницы)', () => {
