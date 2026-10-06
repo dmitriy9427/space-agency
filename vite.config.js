@@ -10,6 +10,9 @@ import { defineConfig } from 'vite'
  * только index.html. Добавили страницу — допишите её сюда.
  */
 export default defineConfig({
+  // На GitHub Pages сайт живёт в подпапке /space-agency/ (BASE_URL задаёт
+  // .github/workflows/pages.yml). Ссылки между страницами — относительные.
+  base: process.env.BASE_URL ?? '/',
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 700,
