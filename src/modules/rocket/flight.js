@@ -8,7 +8,7 @@
  * управляется только позицией прокрутки.
  * @module rocket/flight
  */
-import { clamp, invLerp, lerp, rad, smoothstep } from '../../core/math.js'
+import { clamp, invLerp, lerp, rad, smoothstep, wrap } from '../../core/math.js'
 
 /**
  * @typedef {object} FlightState
@@ -21,54 +21,71 @@ import { clamp, invLerp, lerp, rad, smoothstep } from '../../core/math.js'
  * @property {number} yaw Поворот вокруг вертикальной оси, градусы.
  * @property {number} thrust Тяга 0…1: длина и яркость факела.
  * @property {number} ground Уход стартовой площадки: 0 — стоим на ней, 1 — её нет.
- * @property {number} [lift] Высота ракеты НАД площадкой (в тех же долях, что y). Нужна
- *   только при запуске по кнопке: ракета поднимается, а площадка остаётся на земле.
  */
 
 /**
- * Сценарий полёта (ракета всё время справа, текст слева):
+ * Сценарий полёта (ракета справа, текст слева). Нос: roll 0 — вверх, 90 — влево,
+ * 180 — вниз, 270 — вправо, 360 — снова вверх (крен всё время растёт: один
+ * непрерывный разворот против часовой стрелки, без «раскручивания назад»).
  *
  * 1. `hero` — стоит на площадке;
- * 2. `manifesto` → `story` → `apogee` — взлёт и набор высоты;
- * 3. `orbit` — разворот на 180°: огонь сверху, нос вниз, ракета идёт вниз;
- * 4. `dive` → `exit` — спускаясь, уходит за правый край перед слайдерами;
+ * 2. `manifesto` → `turn` → `flip` — чуть взлетает, плавная дуга влево через верх
+ *    и разворот: к началу истории ракета уже носом вниз;
+ * 3. `story` → `apogee` — летит носом вниз, пока идёт закреплённая история;
+ * 4. `orbit` → `bank` → `dive` → `exit` — в секции «Нарисуй путь» доворачивает нос
+ *    вправо и уходит за правый край ДО того, как снизу наедут слайдеры;
  * 5. слайдеры, вода и архив непрозрачны — ракеты не видно (и она не рисуется);
- * 6. `return` → `mission` — возвращается справа, всё ещё носом вниз;
- * 7. `landing` — разворачивается (180° → 360°, в ту же сторону) и садится
- *    на станцию, площадка поднимается навстречу.
+ * 6. `return` → `glide` — после архива вылетает справа носом влево («окно в небо»
+ *    перед подвалом, секция .approach);
+ * 7. `mission` → `final` — нос поворачивается вниз, немного пролетает;
+ * 8. `landing` — разворот носом вверх и посадка на площадку.
+ *
+ * Где каждая точка «срабатывает» — атрибуты data-flight / data-flight-start в index.html.
  * @type {Record<string, FlightState>}
  */
 export const WAYPOINTS = {
   hero: { x: 0.46, y: -0.05, scale: 0.85, roll: 0, yaw: 24, thrust: 0.14, ground: 0 },
-  manifesto: { x: 0.62, y: 0.3, scale: 0.8, roll: -3, yaw: 22, thrust: 0.9, ground: 1 },
-  story: { x: 0.56, y: 0.4, scale: 0.9, roll: -3, yaw: 22, thrust: 1, ground: 1 },
-  apogee: { x: 0.6, y: 0.5, scale: 0.75, roll: 0, yaw: 22, thrust: 0.5, ground: 1 },
-  orbit: { x: 0.85, y: 0.2, scale: 0.48, roll: 180, yaw: 22, thrust: 0.7, ground: 1 },
-  dive: { x: 0.88, y: -0.25, scale: 0.5, roll: 185, yaw: 22, thrust: 0.9, ground: 1 },
-  exit: { x: 1.9, y: -0.45, scale: 0.6, roll: 200, yaw: 22, thrust: 1, ground: 1 },
-  return: { x: 1.9, y: 0.5, scale: 0.75, roll: 160, yaw: 22, thrust: 0.6, ground: 1 },
-  mission: { x: 0.55, y: 0.3, scale: 0.8, roll: 180, yaw: 22, thrust: 0.5, ground: 1 },
-  landing: { x: 0.55, y: -0.05, scale: 0.85, roll: 360, yaw: 24, thrust: 0.04, ground: 0 },
+  manifesto: { x: 0.56, y: 0.2, scale: 0.8, roll: 4, yaw: 22, thrust: 0.9, ground: 1 },
+  // Дуга держится правее текста манифеста (он занимает левые ~62% экрана).
+  turn: { x: 0.64, y: 0.46, scale: 0.7, roll: 75, yaw: 22, thrust: 1, ground: 1 },
+  flip: { x: 0.56, y: 0.44, scale: 0.72, roll: 140, yaw: 22, thrust: 0.9, ground: 1 },
+  story: { x: 0.56, y: 0.3, scale: 0.85, roll: 180, yaw: 22, thrust: 0.8, ground: 1 },
+  apogee: { x: 0.6, y: 0.22, scale: 0.75, roll: 180, yaw: 22, thrust: 0.6, ground: 1 },
+  // В «Орбите» по центру — схема орбиты: ракета идёт вдоль правого края, не закрывая её.
+  orbit: { x: 0.87, y: 0.3, scale: 0.5, roll: 184, yaw: 22, thrust: 0.7, ground: 1 },
+  bank: { x: 0.87, y: 0.0, scale: 0.5, roll: 215, yaw: 22, thrust: 0.9, ground: 1 },
+  dive: { x: 0.9, y: -0.3, scale: 0.52, roll: 262, yaw: 22, thrust: 1, ground: 1 },
+  exit: { x: 1.9, y: -0.34, scale: 0.6, roll: 270, yaw: 22, thrust: 1, ground: 1 },
+  return: { x: 1.9, y: -0.3, scale: 0.6, roll: 450, yaw: 22, thrust: 1, ground: 1 },
+  glide: { x: 0.66, y: -0.08, scale: 0.68, roll: 452, yaw: 22, thrust: 0.8, ground: 1 },
+  mission: { x: 0.52, y: 0.3, scale: 0.75, roll: 540, yaw: 22, thrust: 0.6, ground: 1 },
+  final: { x: 0.54, y: 0.14, scale: 0.8, roll: 540, yaw: 22, thrust: 0.5, ground: 1 },
+  landing: { x: 0.55, y: -0.05, scale: 0.85, roll: 720, yaw: 24, thrust: 0.04, ground: 0 },
 }
 
 /**
  * Тот же сценарий для портретного экрана (телефон). Текст там занимает почти
  * всю ширину, поэтому ракета меньше и держится в свободных зонах: на старте —
  * внизу справа на площадке, в полёте — у правого края над/под текстом, садится
- * снова внизу. Подобрано по скриншотам 390×844.
+ * снова внизу. Манёвры те же, что на широком экране.
  * @type {Record<string, FlightState>}
  */
 export const WAYPOINTS_PORTRAIT = {
   hero: { x: 0.5, y: -0.98, scale: 0.62, roll: 0, yaw: 24, thrust: 0.14, ground: 0 },
-  manifesto: { x: 0.75, y: -0.2, scale: 0.45, roll: -3, yaw: 22, thrust: 0.9, ground: 1 },
-  story: { x: 0.45, y: 0.3, scale: 0.7, roll: -3, yaw: 22, thrust: 1, ground: 1 },
-  apogee: { x: 0.55, y: 0.6, scale: 0.55, roll: 0, yaw: 22, thrust: 0.5, ground: 1 },
-  orbit: { x: 0.7, y: -0.55, scale: 0.42, roll: 180, yaw: 22, thrust: 0.7, ground: 1 },
-  dive: { x: 0.75, y: -0.8, scale: 0.42, roll: 185, yaw: 22, thrust: 0.9, ground: 1 },
-  exit: { x: 1.9, y: -0.9, scale: 0.5, roll: 200, yaw: 22, thrust: 1, ground: 1 },
-  return: { x: 1.9, y: 0.5, scale: 0.55, roll: 160, yaw: 22, thrust: 0.6, ground: 1 },
-  mission: { x: 0.6, y: 0.75, scale: 0.5, roll: 180, yaw: 22, thrust: 0.5, ground: 1 },
-  landing: { x: 0.55, y: -0.98, scale: 0.62, roll: 360, yaw: 24, thrust: 0.04, ground: 0 },
+  manifesto: { x: 0.6, y: -0.6, scale: 0.5, roll: 4, yaw: 22, thrust: 0.9, ground: 1 },
+  turn: { x: 0.55, y: -0.25, scale: 0.45, roll: 75, yaw: 22, thrust: 1, ground: 1 },
+  flip: { x: 0.4, y: -0.2, scale: 0.45, roll: 140, yaw: 22, thrust: 0.9, ground: 1 },
+  story: { x: 0.45, y: 0.3, scale: 0.7, roll: 180, yaw: 22, thrust: 0.8, ground: 1 },
+  apogee: { x: 0.55, y: 0.5, scale: 0.55, roll: 180, yaw: 22, thrust: 0.6, ground: 1 },
+  orbit: { x: 0.65, y: -0.5, scale: 0.42, roll: 188, yaw: 22, thrust: 0.7, ground: 1 },
+  bank: { x: 0.62, y: -0.66, scale: 0.42, roll: 222, yaw: 22, thrust: 0.9, ground: 1 },
+  dive: { x: 0.7, y: -0.8, scale: 0.42, roll: 262, yaw: 22, thrust: 1, ground: 1 },
+  exit: { x: 1.9, y: -0.82, scale: 0.5, roll: 270, yaw: 22, thrust: 1, ground: 1 },
+  return: { x: 1.9, y: -0.5, scale: 0.5, roll: 450, yaw: 22, thrust: 1, ground: 1 },
+  glide: { x: 0.65, y: -0.2, scale: 0.5, roll: 452, yaw: 22, thrust: 0.8, ground: 1 },
+  mission: { x: 0.5, y: 0.25, scale: 0.5, roll: 540, yaw: 22, thrust: 0.6, ground: 1 },
+  final: { x: 0.55, y: 0.05, scale: 0.55, roll: 540, yaw: 22, thrust: 0.5, ground: 1 },
+  landing: { x: 0.55, y: -0.98, scale: 0.62, roll: 720, yaw: 24, thrust: 0.04, ground: 0 },
 }
 
 /** Портретный экран (телефон в вертикальном положении). */
@@ -77,13 +94,13 @@ export const isPortrait = (aspect) => aspect < 0.8
 /** Таблица точек под форму экрана. */
 export const waypointsFor = (aspect) => (isPortrait(aspect) ? WAYPOINTS_PORTRAIT : WAYPOINTS)
 
-const KEYS = ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground', 'lift']
+const KEYS = ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground']
 
-/** Интерполяция всех полей состояния (поле, которого нет в точке, считается нулём). */
+/** Интерполяция всех полей состояния. */
 export function mixState(a, b, t) {
   const out = {}
 
-  for (const key of KEYS) out[key] = lerp(a[key] ?? 0, b[key] ?? 0, t)
+  for (const key of KEYS) out[key] = lerp(a[key], b[key], t)
   return out
 }
 
@@ -138,98 +155,48 @@ export function sampleFlight(timeline, scroll) {
 }
 
 // ─── Запуск по кнопке «Пуск» ─────────────────────────────────────────────────
-// Обычно ракетой управляет прокрутка. Запуск — исключение: на несколько секунд
-// сценарий задают функции ниже (время → состояние), а не позиция страницы.
-//
-//   1. ascent  — старт с площадки и уход за верх экрана;
-//   2. страница плавно едет наверх, ракета за кадром (держим последнее состояние);
-//   3. descent — ракета спускается сверху и садится на площадку первого экрана.
-//
-// Всё, что определяет ХАРАКТЕР траектории, собрано в LAUNCH — крутите цифры здесь.
+// После отсчёта страница сама едет наверх, а ракета проходит ТОТ ЖЕ путь в
+// обратную сторону. Положение остаётся от сценария (sampleFlight по прокрутке) —
+// меняется только нос: ракета летит носом вверх, а не «пятится» хвостом вперёд.
 
-/** Настройки траектории запуска. */
+/** Настройки обратного полёта. */
 export const LAUNCH = {
-  /** Длительность взлёта, с. */
-  ascent: 2.4,
-  /** Длительность посадки, с. */
-  descent: 2.8,
-  /** Высота «за кадром» (y): ракета целиком над экраном. */
-  exitY: 2.7,
-  /** Разгон на взлёте: 1 — равномерно, больше — дольше «висит» над площадкой и резче уходит. */
-  liftoffPower: 2.6,
-  /** Гравитационный разворот: наклон носа на взлёте, градусы (плюс — влево, к тексту). */
-  tilt: 9,
-  /** Снос по горизонтали на взлёте (доля полуширины экрана, минус — влево). */
-  drift: -0.16,
-  /** Насколько ракета «уменьшается», уходя вверх (0 — не меняется). */
-  shrink: 0.18,
-  /** С какой стороны заходит на посадку (доля полуширины, плюс — справа). */
-  approach: 0.14,
-  /** Наклон на заходе, градусы: ракета выравнивается к моменту касания. */
-  approachTilt: -7,
-  /** Торможение на посадке: больше — раньше гасит скорость и дольше «подкрадывается». */
-  brakingPower: 3.2,
-  /** Тяга на взлёте и на тормозном импульсе. */
-  thrust: 1.5,
+  /** Наклон в сторону движения на боковых участках, градусы (0 — строго вертикально). */
+  lean: 32,
+  /** Тяга, не ниже которой держим факел на обратном пути. */
+  thrust: 1.2,
 }
 
+/** Кратчайшая разница углов b − a, в диапазоне −180…180. */
+export const angleDelta = (a, b) => wrap(b - a, -180, 180)
+
 /**
- * Взлёт: состояние ракеты в момент t (0 — стоит, 1 — за верхом экрана).
+ * Крен «носом вверх» для обратного пути.
  *
- * Высота растёт как t^liftoffPower: тяжёлая ракета сначала еле отрывается, потом
- * разгоняется. Наклон и снос начинаются не сразу — первые ~15% ракета идёт строго
- * вверх (как настоящая: сначала уйти от башни, потом разворот).
- * @param {FlightState} from Состояние в момент старта.
- * @param {number} t 0…1
+ * Берём, куда нос смотрит по сценарию, и разворачиваем горизонталь: там, где
+ * вперёд ракета улетала носом вправо, обратно она возвращается с наклоном влево.
+ * По вертикали нос всегда вверх. Результат — небольшой наклон ±lean вокруг нуля.
+ * @param {number} roll Крен по сценарию, градусы.
+ * @param {number} [lean]
+ */
+export const noseUpRoll = (roll, lean = LAUNCH.lean) => -Math.sin(rad(roll)) * lean
+
+/**
+ * Состояние на обратном пути: позиция из сценария, нос — вверх.
+ * @param {FlightState} scripted Состояние по сценарию для текущей прокрутки.
+ * @param {number} mix 1 — полностью «обратный полёт», 0 — обычный сценарий
+ *   (между ними — плавная передача управления).
  * @param {typeof LAUNCH} [o]
  * @returns {FlightState}
  */
-export function ascentState(from, t, o = LAUNCH) {
-  const p = clamp(t, 0, 1)
-  const rise = Math.pow(p, o.liftoffPower)
-  const turn = smoothstep(0.15, 1, p)
-  const y = lerp(from.y, o.exitY, rise)
+export function returnState(scripted, mix, o = LAUNCH) {
+  const k = clamp(mix, 0, 1)
 
   return {
-    x: from.x + o.drift * turn * rise,
-    y,
-    scale: from.scale * (1 - o.shrink * rise),
-    roll: from.roll + o.tilt * turn,
-    yaw: from.yaw,
-    // Тяга выходит на максимум за первую десятую — «зажигание».
-    thrust: lerp(from.thrust, o.thrust, smoothstep(0, 0.1, p)),
-    // Площадка стоит на месте, пока ракета не ушла высоко; потом «земля уходит вниз».
-    ground: smoothstep(0.5, 0.85, p),
-    lift: y - from.y,
-  }
-}
-
-/**
- * Посадка: состояние в момент t (0 — за верхом экрана, 1 — стоит на площадке).
- *
- * Высота убывает как (1−t)^brakingPower: быстро входит в кадр и всё медленнее
- * подходит к площадке — как ступень с реактивной посадкой. Тяга: тормозной
- * импульс почти до конца, у самой площадки спадает до дежурной.
- * @param {FlightState} to Состояние на площадке (точка `hero`).
- * @param {number} t 0…1
- * @param {typeof LAUNCH} [o]
- * @returns {FlightState}
- */
-export function descentState(to, t, o = LAUNCH) {
-  const p = clamp(t, 0, 1)
-  const left = Math.pow(1 - p, o.brakingPower) // сколько пути осталось, 1 → 0
-  const y = lerp(to.y, o.exitY, left)
-
-  return {
-    x: to.x + o.approach * left,
-    y,
-    scale: to.scale * (1 - o.shrink * left),
-    roll: to.roll + o.approachTilt * left,
-    yaw: to.yaw,
-    thrust: lerp(o.thrust, to.thrust, smoothstep(0.8, 1, p)),
-    // Площадка поднимается на место в начале захода — ракета садится уже на неё.
-    ground: 1 - smoothstep(0, 0.3, p),
-    lift: y - to.y,
+    ...scripted,
+    // Идём к цели кратчайшей дугой — без лишнего оборота (720° и 0° — одно и то же).
+    roll: scripted.roll + angleDelta(scripted.roll, noseUpRoll(scripted.roll, o.lean)) * k,
+    thrust: lerp(scripted.thrust, Math.max(scripted.thrust, o.thrust), k),
   }
 }
 
@@ -239,8 +206,7 @@ export function descentState(to, t, o = LAUNCH) {
  * @param {FlightState} state
  * @param {number} aspect Ширина / высота экрана.
  * @param {number} halfHeight Полувысота видимой области на плоскости ракеты.
- * @returns {{ x: number, y: number, scale: number, lift: number }} lift — на сколько ракета
- *   выше площадки (мировые единицы).
+ * @returns {{ x: number, y: number, scale: number }}
  */
 export function toWorld(state, aspect, halfHeight) {
   const halfWidth = halfHeight * aspect
@@ -248,17 +214,16 @@ export function toWorld(state, aspect, halfHeight) {
   // таблица WAYPOINTS_PORTRAIT (waypointsFor), здесь только масштаб и край.
   const portrait = isPortrait(aspect)
   const fit = clamp(aspect / 1.2, portrait ? 0.34 : 0.42, 1)
-  const maxX = portrait ? 0.75 : 0.9
-  const shiftY = 0
 
-  // |x| > 1 — ракета намеренно за краем экрана: не прижимаем.
-  const x = Math.abs(state.x) > 1 ? state.x : clamp(state.x, -maxX, maxX)
+  // Горизонталь НЕ прижимаем к краю. Раньше x до 1 зажимался в 0.9, а после 1 — нет:
+  // на уходе за экран ракета перескакивала с 0.9 сразу на 1.0 (заметный рывок).
+  // Чтобы ракета не вылезала на узком экране — задайте x в таблице точек.
+  const x = state.x
 
   return {
     x: x * halfWidth,
-    y: (state.y * 0.8 + shiftY) * halfHeight,
+    y: state.y * 0.8 * halfHeight,
     scale: state.scale * fit,
-    lift: (state.lift ?? 0) * 0.8 * halfHeight,
   }
 }
 

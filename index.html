@@ -72,7 +72,11 @@
           </section>
 
           <!-- 2. МАНИФЕСТ ----------------------------------------------------------- -->
+          <!-- Ракета чуть взлетает (manifesto), по дуге уходит влево (turn) и разворачивается
+               носом вниз (flip). Маркеры — опорные точки траектории, см. rocket/flight.js. -->
           <section class="manifesto" data-module="manifesto" data-flight="manifesto">
+            <i class="flight-marker" data-flight="turn" data-flight-start="top 25%" aria-hidden="true"></i>
+            <i class="flight-marker" style="top: 15%" data-flight="flip" data-flight-start="top top" aria-hidden="true"></i>
             <p class="eyebrow" data-scramble>// манифест</p>
             <p class="manifesto__text" data-reveal-words>
               Мы строим ракеты так, как строят хорошие интерфейсы: у каждого кадра есть цель, у каждого движения — вес,
@@ -132,9 +136,14 @@
           </section>
 
           <!-- 4. ОРБИТА (SVG) -------------------------------------------------------- -->
-          <!-- Ракета разворачивается носом вниз, пока «Орбита» въезжает на экран. -->
+          <!-- Ракета летит носом вниз, здесь доворачивает нос вправо (bank → dive) и уходит
+               за правый край (exit) раньше, чем снизу наедут слайдеры. Маркеры стоят на
+               долях высоты секции (она длинная: внутри закреплённая сцена). -->
           <section class="orbit" id="orbit" data-module="orbit" data-flight="orbit" data-flight-start="top 25%">
             <i class="flight-marker" data-flight="apogee" data-flight-start="top bottom" aria-hidden="true"></i>
+            <i class="flight-marker" style="top: 17%" data-flight="bank" data-flight-start="top top" aria-hidden="true"></i>
+            <i class="flight-marker" style="top: 32%" data-flight="dive" data-flight-start="top top" aria-hidden="true"></i>
+            <i class="flight-marker" style="top: 62%" data-flight="exit" data-flight-start="top top" aria-hidden="true"></i>
             <div class="orbit__pin" data-orbit-pin>
               <div class="orbit__copy">
                 <p class="eyebrow">// орбитальная механика</p>
@@ -177,9 +186,8 @@
           </section>
 
           <!-- 5. СЛАЙДЕРЫ ---------------------------------------------------------------- -->
-          <!-- Перед слайдерами ракета уходит за правый край экрана. -->
-          <section class="fleet space-dust" id="fleet" data-flight="exit" data-flight-start="top 55%" data-occlude>
-            <i class="flight-marker" data-flight="dive" data-flight-start="top bottom" aria-hidden="true"></i>
+          <!-- К этому моменту ракета уже ушла за правый край экрана (секция «Орбита»). -->
+          <section class="fleet space-dust" id="fleet" data-occlude>
             <header class="fleet__head">
               <p class="eyebrow">// флот</p>
               <h2 class="section-title">Шесть слайдеров<br />без Swiper</h2>
@@ -293,10 +301,20 @@
             </div>
           </section>
 
+          <!-- 7½. ОКНО В НЕБО ------------------------------------------------------------- -->
+          <!-- Пустой экран со звёздами между архивом и подвалом: здесь ракета возвращается —
+               вылетает справа носом влево (return → glide). Без него манёвр был бы скрыт
+               непрозрачным архивом. -->
+          <div class="approach" aria-hidden="true">
+            <i class="flight-marker" data-flight="return" data-flight-start="top 55%"></i>
+            <i class="flight-marker" data-flight="glide" data-flight-start="top 10%"></i>
+          </div>
+
           <!-- 8. ЦЕНТР УПРАВЛЕНИЯ --------------------------------------------------------- -->
-          <!-- Ракета возвращается справа и в самом низу садится на станцию. -->
+          <!-- Нос поворачивается вниз (mission), ракета немного пролетает (final), в самом
+               низу разворачивается и садится на станцию (landing). -->
           <footer class="mission" id="mission" data-module="mission" data-flight="mission">
-            <i class="flight-marker" data-flight="return" data-flight-start="top bottom" aria-hidden="true"></i>
+            <i class="flight-marker" data-flight="final" data-flight-start="top 30%" aria-hidden="true"></i>
             <div class="mission__grid">
               <div>
                 <p class="eyebrow">// центр управления</p>

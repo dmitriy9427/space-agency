@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LAUNCH, WAYPOINTS, WAYPOINTS_PORTRAIT, ascentState, descentState, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
+import { LAUNCH, WAYPOINTS, WAYPOINTS_PORTRAIT, angleDelta, noseUpRoll, returnState, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
 
 describe('rocket/flight', () => {
   const timeline = buildFlightTimeline([
@@ -45,9 +45,7 @@ describe('rocket/flight', () => {
     const a = { x: 0, y: 0, scale: 1, roll: 0, yaw: 0, thrust: 0, ground: 0 }
     const b = { x: 1, y: 2, scale: 3, roll: 4, yaw: 5, thrust: 6, ground: 7 }
 
-    // lift в обычных точках нет — считается нулём.
-    expect(mixState(a, b, 0.5)).toEqual({ x: 0.5, y: 1, scale: 2, roll: 2, yaw: 2.5, thrust: 3, ground: 3.5, lift: 0 })
-    expect(mixState(a, { ...b, lift: 2 }, 0.5).lift).toBe(1)
+    expect(mixState(a, b, 0.5)).toEqual({ x: 0.5, y: 1, scale: 2, roll: 2, yaw: 2.5, thrust: 3, ground: 3.5 })
   })
 
   it('toWorld: широкий экран и портрет', () => {
@@ -55,13 +53,13 @@ describe('rocket/flight', () => {
     const wide = toWorld(state, 16 / 9, 3)
     const tall = toWorld(state, 9 / 16, 3)
 
-    expect(wide.x).toBeCloseTo(0.9 * 3 * (16 / 9))
+    // Горизонталь не прижимается к краю: x = 1 — ровно край экрана (иначе рывок на уходе за экран).
+    expect(wide.x).toBeCloseTo(3 * (16 / 9))
     expect(wide.y).toBeCloseTo(2.4)
     expect(wide.scale).toBe(1)
     expect(tall.scale).toBeLessThan(0.5)
-    // В портрете ракета прижата сильнее (x ≤ 0.75 полуширины); высоту не сдвигаем —
-    // её задаёт своя таблица точек (WAYPOINTS_PORTRAIT).
-    expect(tall.x).toBeCloseTo(0.75 * 3 * (9 / 16))
+    // В портрете ракета меньше; где ей быть — задаёт своя таблица точек (WAYPOINTS_PORTRAIT).
+    expect(tall.x).toBeCloseTo(3 * (9 / 16))
     expect(tall.y).toBeCloseTo(wide.y)
   })
 
@@ -85,21 +83,36 @@ describe('rocket/flight', () => {
     expect(sampleFlight(t, 1000)).toEqual(WAYPOINTS.landing)
   })
 
-  it('сценарий: взлёт, разворот носом вниз, уход за край, возврат и посадка', () => {
-    const order = ['hero', 'manifesto', 'story', 'apogee', 'orbit', 'dive', 'exit', 'return', 'mission', 'landing']
-    const w = order.map((id) => WAYPOINTS[id])
+  it('сценарий: дуга и разворот, носом вниз, уход вправо, возврат носом влево, посадка', () => {
+    const order = ['hero', 'manifesto', 'turn', 'flip', 'story', 'apogee', 'orbit', 'bank', 'dive', 'exit', 'return', 'glide', 'mission', 'final', 'landing']
+    const nose = (id) => ({ x: -Math.sin((WAYPOINTS[id].roll * Math.PI) / 180), y: heading(WAYPOINTS[id].roll) })
 
-    // Взлёт: до апогея нос вверх и высота растёт.
-    expect(w.slice(0, 4).every((p) => Math.abs(p.roll) < 10)).toBe(true)
-    expect(WAYPOINTS.apogee.y).toBeGreaterThan(WAYPOINTS.hero.y)
-    // После апогея — носом вниз и вниз.
-    expect(heading(WAYPOINTS.orbit.roll)).toBeLessThan(-0.9)
-    expect(WAYPOINTS.dive.y).toBeLessThan(WAYPOINTS.orbit.y)
-    // Перед слайдерами — за правым краем, возврат — тоже справа.
+    expect(Object.keys(WAYPOINTS)).toEqual(order)
+    for (const table of [WAYPOINTS, WAYPOINTS_PORTRAIT]) {
+      const rolls = order.map((id) => table[id].roll)
+
+      // Крен только растёт: один непрерывный разворот, без «раскручивания» назад.
+      for (let i = 1; i < rolls.length; i++) expect(rolls[i]).toBeGreaterThanOrEqual(rolls[i - 1])
+    }
+    // Старт: чуть взлетела носом вверх, на дуге нос влево, к истории — вниз.
+    expect(WAYPOINTS.manifesto.y).toBeGreaterThan(WAYPOINTS.hero.y)
+    expect(nose('manifesto').y).toBeGreaterThan(0.9)
+    expect(nose('turn').x).toBeLessThan(-0.9)
+    expect(nose('story').y).toBeCloseTo(-1)
+    expect(nose('apogee').y).toBeCloseTo(-1)
+    // «Нарисуй путь»: нос вправо и за правый край.
+    expect(nose('dive').x).toBeGreaterThan(0.9)
+    expect(nose('exit').x).toBeCloseTo(1)
     expect(WAYPOINTS.exit.x).toBeGreaterThan(1)
+    // После архива: справа, носом влево; потом нос вниз и немного вниз.
     expect(WAYPOINTS.return.x).toBeGreaterThan(1)
+    expect(nose('return').x).toBeCloseTo(-1)
+    expect(nose('glide').x).toBeLessThan(-0.9)
+    expect(nose('mission').y).toBeCloseTo(-1)
+    expect(nose('final').y).toBeCloseTo(-1)
+    expect(WAYPOINTS.final.y).toBeLessThan(WAYPOINTS.mission.y)
     // Посадка: снова носом вверх, на площадке, двигатель почти выключен.
-    expect(heading(WAYPOINTS.landing.roll)).toBeCloseTo(1)
+    expect(nose('landing').y).toBeCloseTo(1)
     expect(WAYPOINTS.landing.ground).toBe(0)
     expect(WAYPOINTS.landing.thrust).toBeLessThan(0.1)
   })
@@ -148,69 +161,43 @@ describe('rocket/flight', () => {
     ).toBe(false)
   })
 
-  describe('запуск по кнопке', () => {
-    const pad = WAYPOINTS.landing
-
-    it('взлёт: начинает с места, уходит за верх экрана, площадка остаётся на земле', () => {
-      const start = ascentState(pad, 0)
-
-      expect(start.y).toBe(pad.y)
-      expect(start.x).toBe(pad.x)
-      expect(start.lift).toBe(0)
-      expect(start.ground).toBe(0)
-
-      const end = ascentState(pad, 1)
-
-      expect(end.y).toBe(LAUNCH.exitY)
-      expect(end.y * 0.8).toBeGreaterThan(1.5) // целиком над экраном
-      expect(end.thrust).toBe(LAUNCH.thrust)
-      expect(end.ground).toBe(1)
-      // Площадка не едет за ракетой: высота над ней = пройденный путь.
-      expect(ascentState(pad, 0.5).lift).toBeCloseTo(ascentState(pad, 0.5).y - pad.y)
+  describe('запуск по кнопке: тот же путь обратно, носом вверх', () => {
+    it('noseUpRoll: нос вверх, на боковых участках — наклон в обратную сторону', () => {
+      expect(noseUpRoll(0)).toBeCloseTo(0) // вверх → вверх
+      expect(noseUpRoll(180)).toBeCloseTo(0) // по сценарию вниз → обратно вверх
+      expect(noseUpRoll(720)).toBeCloseTo(0)
+      // Улетала носом вправо (270°) → возвращается с наклоном влево (плюс).
+      expect(noseUpRoll(270)).toBeCloseTo(LAUNCH.lean)
+      // Влетала носом влево (90° ≡ 450°) → обратно уходит с наклоном вправо.
+      expect(noseUpRoll(450)).toBeCloseTo(-LAUNCH.lean)
+      expect(Math.abs(noseUpRoll(225))).toBeLessThan(LAUNCH.lean)
     })
 
-    it('взлёт: высота только растёт, сначала медленно; первые 15% — строго вверх', () => {
-      const ys = Array.from({ length: 21 }, (_, i) => ascentState(pad, i / 20).y)
-
-      for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThanOrEqual(ys[i - 1])
-      // За первую половину времени — меньше четверти пути (тяжёлый старт).
-      expect(ys[10] - ys[0]).toBeLessThan((ys[20] - ys[0]) / 4)
-      expect(ascentState(pad, 0.1).roll).toBe(pad.roll)
-      expect(ascentState(pad, 0.1).x).toBe(pad.x)
-      expect(ascentState(pad, 1).roll).toBe(pad.roll + LAUNCH.tilt)
+    it('angleDelta — кратчайшая дуга', () => {
+      expect(angleDelta(720, 0)).toBe(0)
+      expect(angleDelta(350, 10)).toBe(20)
+      expect(angleDelta(10, 350)).toBe(-20)
+      expect(angleDelta(180, 0)).toBe(-180)
     })
 
-    it('посадка: из-за кадра точно в состояние площадки, тормозя к концу', () => {
-      const hero = WAYPOINTS.hero
-      const top = descentState(hero, 0)
+    it('returnState: позиция из сценария, меняются только нос и тяга', () => {
+      const scripted = WAYPOINTS.final // нос вниз
+      const back = returnState(scripted, 1)
 
-      expect(top.y).toBe(LAUNCH.exitY)
-      expect(top.ground).toBe(1)
-
-      const end = descentState(hero, 1)
-
-      // Совпадает с точкой сценария — передача управления прокрутке без скачка.
-      for (const key of ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground']) expect(end[key]).toBeCloseTo(hero[key])
-      expect(end.lift).toBeCloseTo(0)
-
-      const ys = Array.from({ length: 21 }, (_, i) => descentState(hero, i / 20).y)
-
-      for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeLessThanOrEqual(ys[i - 1])
-      // Последняя половина времени — меньше 15% пути (мягкое касание).
-      expect(ys[10] - ys[20]).toBeLessThan((ys[0] - ys[20]) * 0.15)
-      // Площадка на месте раньше, чем ракета до неё дошла.
-      expect(descentState(hero, 0.3).ground).toBe(0)
-      expect(descentState(hero, 0.3).lift).toBeGreaterThan(0)
+      for (const key of ['x', 'y', 'scale', 'yaw', 'ground']) expect(back[key]).toBe(scripted[key])
+      expect(heading(back.roll)).toBeCloseTo(1) // нос вверх
+      expect(back.thrust).toBe(LAUNCH.thrust)
+      // mix 0 — обычный сценарий, 0.5 — полпути (плавная передача управления).
+      expect(returnState(scripted, 0)).toEqual(scripted)
+      expect(heading(returnState(scripted, 0.5).roll)).toBeCloseTo(0)
     })
 
-    it('за пределами 0…1 время прижимается', () => {
-      expect(ascentState(pad, -1)).toEqual(ascentState(pad, 0))
-      expect(descentState(pad, 2)).toEqual(descentState(pad, 1))
-    })
+    it('на площадках (внизу и наверху) нос уже вверх — включение и отпускание без скачка', () => {
+      for (const id of ['landing', 'hero']) {
+        const back = returnState(WAYPOINTS[id], 1)
 
-    it('toWorld переводит lift в мировые единицы', () => {
-      expect(toWorld({ ...pad, lift: 1 }, 1.6, 10).lift).toBe(8)
-      expect(toWorld(pad, 1.6, 10).lift).toBe(0)
+        expect(back.roll).toBeCloseTo(WAYPOINTS[id].roll) // 720° не «раскручивается» в 0°
+      }
     })
   })
 })

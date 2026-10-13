@@ -479,8 +479,7 @@ export class RocketScene {
     )
 
     // Площадка стоит под ракетой, пока ground = 0, и уезжает вниз.
-    // lift — запуск по кнопке: ракета поднимается, площадка остаётся на земле.
-    this.pad.position.set(world.x, world.y - world.lift - state.ground * 16, -0.4)
+    this.pad.position.set(world.x, world.y - state.ground * 16, -0.4)
     this.pad.scale.setScalar(world.scale)
     this.pad.visible = state.ground < 0.999
     this.pad.userData.beacon.material.emissiveIntensity = 1.2 + Math.sin(time * 5) * 1.1

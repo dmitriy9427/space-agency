@@ -29,15 +29,11 @@
  *
  * ─── События шины ─────────────────────────────────────────────────────────────
  *   story:scene (≥ 2) → отстрел ускорителей (replay: true — см. core/bus.js);
- *   launch            → кнопка «Пуск»: взлёт с площадки за верх экрана (ascentState);
- *   launch:arrived    → страница доехала наверх: посадка на площадку (descentState);
- *   launch:aborted    → пользователь сам взялся за прокрутку: плавно вернуться к
- *                       обычному сценарию по скроллу.
- *
- * ─── Запуск: кто главный ──────────────────────────────────────────────────────
- * Обычно состояние ракеты = sampleFlight(прокрутка). На время запуска поверх него
- * кладётся `override` — состояние от времени, а не от прокрутки. `mix` (1 → 0)
- * смешивает их, поэтому возврат к сценарию — без скачка.
+ *   launch            → кнопка «Пуск»: страница едет наверх, ракета проходит тот же
+ *                       путь обратно носом вверх (returnState в flight.js);
+ *   launch:arrived    → доехали наверх: управление снова у обычного сценария;
+ *   launch:aborted    → пользователь сам взялся за прокрутку: нос плавно
+ *                       возвращается к сценарию.
  * @module rocket
  */
 import { gsap, ScrollTrigger } from '../../core/gsap.js'
@@ -45,18 +41,7 @@ import { supportsWebGL } from '../../core/env.js'
 import { createDisposer } from '../../core/lifecycle.js'
 import { createRenderLoop, observeSize } from '../../core/webgl.js'
 import { damp } from '../../core/math.js'
-import {
-  LAUNCH,
-  WAYPOINTS,
-  ascentState,
-  buildFlightTimeline,
-  coversViewport,
-  descentState,
-  mixState,
-  sampleFlight,
-  thrustWithVelocity,
-  waypointsFor,
-} from './flight.js'
+import { buildFlightTimeline, coversViewport, returnState, sampleFlight, thrustWithVelocity, waypointsFor } from './flight.js'
 
 /** Опорная линия: секция «приходит», когда её верх на этой высоте экрана. */
 export const FLIGHT_START = 'top 65%'
@@ -99,6 +84,8 @@ export async function init(canvas, ctx) {
   }
 
   markers.forEach((m) => d.add(() => m.trigger.kill()))
+  // Для отладки и тестов: window.__orbita.ctx.flightTimeline() (страница с ?debug).
+  ctx.flightTimeline = () => timeline
   ScrollTrigger.addEventListener('refresh', rebuild)
   d.add(() => ScrollTrigger.removeEventListener('refresh', rebuild))
   rebuild()
@@ -124,65 +111,25 @@ export async function init(canvas, ctx) {
     }, { replay: true }),
   )
   // --- запуск по кнопке ---------------------------------------------------------
-  /** @type {{ state: object, mix: number } | null} Состояние «поверх» сценария по скроллу. */
-  let override = null
-  const clock = { t: 0 }
-  const stopLaunch = () => gsap.killTweensOf(clock)
+  // Пока страница едет наверх, ракета идёт по сценарию в обратную сторону носом
+  // вверх (returnState). `mix`: 1 — обратный полёт, 0 — обычный сценарий.
+  const launch = { mix: 0 }
+  const handOver = (duration) => gsap.to(launch, { mix: 0, duration, ease: 'power2.inOut', overwrite: true })
 
-  d.add(stopLaunch)
+  d.add(() => gsap.killTweensOf(launch))
   d.add(
     ctx.bus.on('launch', () => {
       scene.boost(1.6)
       if (ctx.reduced) return // без полёта: страница просто окажется наверху
-
-      const from = sampleFlight(timeline, ctx.getScroll())
-
-      stopLaunch()
-      override = { state: from, mix: 1 }
-      clock.t = 0
-      gsap.to(clock, {
-        t: 1,
-        duration: LAUNCH.ascent,
-        ease: 'none', // характер движения — в ascentState, а не в ease
-        onUpdate: () => override && (override.state = ascentState(from, clock.t)),
-      })
+      // На площадке нос и так вверх (720° ≡ 0°) — включаем сразу, скачка нет.
+      gsap.killTweensOf(launch)
+      launch.mix = 1
     }),
   )
-  d.add(
-    ctx.bus.on('launch:arrived', () => {
-      if (!override) return
-
-      // Наверху по сценарию ракета стоит на площадке (первая точка) — туда и садимся.
-      const to = timeline[0]?.state ?? WAYPOINTS.hero
-
-      stopLaunch()
-      clock.t = 0
-      override.state = descentState(to, 0)
-      gsap.to(clock, {
-        t: 1,
-        duration: LAUNCH.descent,
-        ease: 'none',
-        onUpdate: () => override && (override.state = descentState(to, clock.t)),
-        onComplete: () => (override = null), // дальше снова рулит прокрутка — состояния совпадают
-      })
-    }),
-  )
-  d.add(
-    ctx.bus.on('launch:aborted', () => {
-      if (!override) return
-
-      const current = override
-
-      stopLaunch()
-      gsap.to(current, {
-        mix: 0,
-        duration: 1.4,
-        ease: 'power2.inOut',
-        onComplete: () => override === current && (override = null),
-      })
-      d.add(() => gsap.killTweensOf(current))
-    }),
-  )
+  // Доехали: наверху сценарий и «нос вверх» совпадают — отпускаем быстро.
+  d.add(ctx.bus.on('launch:arrived', () => handOver(0.4)))
+  // Пользователь перехватил прокрутку: нос плавно возвращается к сценарию.
+  d.add(ctx.bus.on('launch:aborted', () => handOver(1.2)))
 
   // --- курсор -----------------------------------------------------------------
   const pointer = { x: 0, y: 0 }
@@ -211,7 +158,7 @@ export async function init(canvas, ctx) {
       const step = Math.min(Math.max(dt, 0.001), 0.1)
       const scroll = ctx.getScroll()
       const scripted = sampleFlight(timeline, scroll)
-      const flight = override ? mixState(scripted, override.state, override.mix) : scripted
+      const flight = launch.mix > 0 ? returnState(scripted, launch.mix) : scripted
 
       velocity = damp(velocity, (scroll - lastScroll) / step, 8, step)
       lastScroll = scroll
