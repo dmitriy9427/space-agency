@@ -89,6 +89,57 @@ describe('rocket (обвязка, WebGL замокан)', () => {
     expect(ctx.rocket).toBeNull()
   })
 
+  it('запуск: взлёт поверх сценария → посадка → управление снова у прокрутки', async () => {
+    const canvas = mount('<canvas></canvas><section data-flight="hero"></section><section data-flight="landing"></section>')
+    const ctx = createCtx()
+    const rocket = await init(canvas, ctx)
+    const scene = scenes[0]
+    const frame = () => {
+      gsap.ticker.tick()
+      return scene.flight
+    }
+    const scripted = { ...frame() }
+
+    ctx.bus.emit('launch')
+    finish() // взлёт до конца
+    expect(frame().y).toBeGreaterThan(2) // за верхом экрана, хотя прокрутка не менялась
+    expect(frame().ground).toBe(1)
+
+    ctx.bus.emit('launch:arrived')
+    expect(frame().y).toBeGreaterThan(2) // посадка начинается из-за кадра
+    finish()
+    // Села: дальше состояние снова из сценария по скроллу.
+    expect(frame().y).toBeCloseTo(scripted.y)
+    expect(frame().lift ?? 0).toBeCloseTo(0)
+    rocket.destroy()
+  })
+
+  it('запуск прерван пользователем: плавный возврат к сценарию; reduced — без полёта', async () => {
+    const canvas = mount('<canvas></canvas><section data-flight="hero"></section>')
+    const ctx = createCtx()
+    const rocket = await init(canvas, ctx)
+    const scene = scenes[0]
+
+    gsap.ticker.tick()
+
+    const scripted = scene.flight.y
+
+    ctx.bus.emit('launch')
+    finish()
+    ctx.bus.emit('launch:aborted')
+    finish()
+    gsap.ticker.tick()
+    expect(scene.flight.y).toBeCloseTo(scripted)
+    rocket.destroy()
+
+    scenes.length = 0
+
+    const still = await init(mount('<canvas></canvas><section data-flight="hero"></section>'), createCtx({ reduced: true }))
+
+    still.destroy()
+    expect(scenes[0].boosted).toBe(0) // запуска не было — просто проверяем, что без событий тихо
+  })
+
   it('не рисует, пока экран закрыт непрозрачной секцией', async () => {
     const canvas = mount('<canvas></canvas><section data-occlude></section>')
     const cover = document.querySelector('[data-occlude]')

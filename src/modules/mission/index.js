@@ -21,6 +21,11 @@
  * Связь с ракетой — через шину: `ctx.bus.emit('launch')`. Подвал не знает
  * о ракете, ракета слушает событие (docs/04-architecture.md).
  *
+ * После «ПУСК» страница плавно едет наверх (returnToTop): ракета к этому
+ * моменту уже ушла за верх экрана. Доехали — событие `launch:arrived` (ракета
+ * садится на площадку первого экрана). Пользователь сам взялся за прокрутку
+ * (колесо, палец, клавиши) — отдаём управление сразу: `launch:aborted`.
+ *
  * Бегущая строка: бесконечный твин xPercent: −50 (в разметке текст
  * продублирован — когда первая копия уехала, на её месте точно такая же
  * вторая, шов не виден). Скорость меняем через timeScale твина: −1 — назад,
@@ -33,6 +38,15 @@ import { countdownSteps, formatCountdown, sparkParams } from './countdown.js'
 
 /** С какой секунды начинается обратный отсчёт. */
 export const COUNTDOWN_FROM = 5
+
+/** Пауза после «ПУСК» перед прокруткой наверх, с: ракета успевает уйти из кадра. */
+export const RETURN_DELAY = 1.9
+
+/** Сколько длится прокрутка наверх, с. */
+export const RETURN_DURATION = 3.4
+
+/** Клавиши, которыми прокручивают страницу. */
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '])
 
 /**
  * @param {HTMLElement} el
@@ -112,6 +126,62 @@ export function init(el, ctx) {
     }
   }
 
+  const getScroll = () => ctx.getScroll?.() ?? window.scrollY
+  const setScroll = (y) => (ctx.smoother ? ctx.smoother.scrollTop(y) : window.scrollTo(0, y))
+  let returning = null // { stop() } — прокрутка наверх в процессе
+
+  /** Вернуть кнопку в исходное состояние. */
+  const reset = () => {
+    el.classList.remove('is-launched')
+    if (button) button.disabled = false
+    if (display) display.textContent = formatCountdown(COUNTDOWN_FROM)
+    running = null
+  }
+
+  /**
+   * Плавно отвезти страницу наверх. Позицию анимируем сами (а не scrollTo
+   * браузера): нужна предсказуемая длительность и кривая — к концу прокрутки
+   * ракета должна начать посадку.
+   */
+  const returnToTop = () => {
+    if (ctx.reduced) {
+      setScroll(0)
+      ctx.bus.emit('launch:arrived')
+      reset()
+      return
+    }
+
+    const proxy = { y: getScroll() }
+    const events = ['wheel', 'touchstart', 'keydown']
+    let finished = false
+    const finish = (event) => {
+      if (finished) return
+      finished = true
+      tween.kill()
+      events.forEach((name) => window.removeEventListener(name, onUser))
+      returning = null
+      ctx.bus.emit(event)
+      reset()
+    }
+    const onUser = (event) => {
+      if (event.type === 'keydown' && !SCROLL_KEYS.has(event.key)) return
+      finish('launch:aborted')
+    }
+    const tween = gsap.to(proxy, {
+      y: 0,
+      delay: RETURN_DELAY,
+      duration: RETURN_DURATION,
+      ease: 'power2.inOut',
+      // Позицию берём в момент старта прокрутки, а не клика: за время паузы она могла сдвинуться.
+      onStart: () => (proxy.y = getScroll()),
+      onUpdate: () => setScroll(proxy.y),
+      onComplete: () => finish('launch:arrived'),
+    })
+
+    events.forEach((name) => window.addEventListener(name, onUser, { passive: true }))
+    returning = { stop: () => finish('launch:aborted') }
+  }
+
   const launch = () => {
     if (running || !button) return
 
@@ -128,12 +198,7 @@ export function init(el, ctx) {
           { x: -6 },
           { x: 0, duration: 0.8, ease: 'rough({ strength: 3, points: 24, taper: "out", randomize: true, clamp: false })' },
         )
-        gsap.delayedCall(2.5, () => {
-          el.classList.remove('is-launched')
-          button.disabled = false
-          if (display) display.textContent = formatCountdown(COUNTDOWN_FROM)
-          running = null
-        })
+        returnToTop()
       },
     })
 
@@ -149,6 +214,7 @@ export function init(el, ctx) {
   if (display) display.textContent = formatCountdown(COUNTDOWN_FROM)
   if (button) d.listen(button, 'click', launch)
   d.add(() => running?.kill())
+  d.add(() => returning?.stop())
 
   return { launch, destroy: () => d.dispose() }
 }

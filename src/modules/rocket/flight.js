@@ -21,6 +21,8 @@ import { clamp, invLerp, lerp, rad, smoothstep } from '../../core/math.js'
  * @property {number} yaw Поворот вокруг вертикальной оси, градусы.
  * @property {number} thrust Тяга 0…1: длина и яркость факела.
  * @property {number} ground Уход стартовой площадки: 0 — стоим на ней, 1 — её нет.
+ * @property {number} [lift] Высота ракеты НАД площадкой (в тех же долях, что y). Нужна
+ *   только при запуске по кнопке: ракета поднимается, а площадка остаётся на земле.
  */
 
 /**
@@ -75,13 +77,13 @@ export const isPortrait = (aspect) => aspect < 0.8
 /** Таблица точек под форму экрана. */
 export const waypointsFor = (aspect) => (isPortrait(aspect) ? WAYPOINTS_PORTRAIT : WAYPOINTS)
 
-const KEYS = ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground']
+const KEYS = ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground', 'lift']
 
-/** Интерполяция всех полей состояния. */
+/** Интерполяция всех полей состояния (поле, которого нет в точке, считается нулём). */
 export function mixState(a, b, t) {
   const out = {}
 
-  for (const key of KEYS) out[key] = lerp(a[key], b[key], t)
+  for (const key of KEYS) out[key] = lerp(a[key] ?? 0, b[key] ?? 0, t)
   return out
 }
 
@@ -135,13 +137,110 @@ export function sampleFlight(timeline, scroll) {
   return mixState(from.state, to.state, t)
 }
 
+// ─── Запуск по кнопке «Пуск» ─────────────────────────────────────────────────
+// Обычно ракетой управляет прокрутка. Запуск — исключение: на несколько секунд
+// сценарий задают функции ниже (время → состояние), а не позиция страницы.
+//
+//   1. ascent  — старт с площадки и уход за верх экрана;
+//   2. страница плавно едет наверх, ракета за кадром (держим последнее состояние);
+//   3. descent — ракета спускается сверху и садится на площадку первого экрана.
+//
+// Всё, что определяет ХАРАКТЕР траектории, собрано в LAUNCH — крутите цифры здесь.
+
+/** Настройки траектории запуска. */
+export const LAUNCH = {
+  /** Длительность взлёта, с. */
+  ascent: 2.4,
+  /** Длительность посадки, с. */
+  descent: 2.8,
+  /** Высота «за кадром» (y): ракета целиком над экраном. */
+  exitY: 2.7,
+  /** Разгон на взлёте: 1 — равномерно, больше — дольше «висит» над площадкой и резче уходит. */
+  liftoffPower: 2.6,
+  /** Гравитационный разворот: наклон носа на взлёте, градусы (плюс — влево, к тексту). */
+  tilt: 9,
+  /** Снос по горизонтали на взлёте (доля полуширины экрана, минус — влево). */
+  drift: -0.16,
+  /** Насколько ракета «уменьшается», уходя вверх (0 — не меняется). */
+  shrink: 0.18,
+  /** С какой стороны заходит на посадку (доля полуширины, плюс — справа). */
+  approach: 0.14,
+  /** Наклон на заходе, градусы: ракета выравнивается к моменту касания. */
+  approachTilt: -7,
+  /** Торможение на посадке: больше — раньше гасит скорость и дольше «подкрадывается». */
+  brakingPower: 3.2,
+  /** Тяга на взлёте и на тормозном импульсе. */
+  thrust: 1.5,
+}
+
+/**
+ * Взлёт: состояние ракеты в момент t (0 — стоит, 1 — за верхом экрана).
+ *
+ * Высота растёт как t^liftoffPower: тяжёлая ракета сначала еле отрывается, потом
+ * разгоняется. Наклон и снос начинаются не сразу — первые ~15% ракета идёт строго
+ * вверх (как настоящая: сначала уйти от башни, потом разворот).
+ * @param {FlightState} from Состояние в момент старта.
+ * @param {number} t 0…1
+ * @param {typeof LAUNCH} [o]
+ * @returns {FlightState}
+ */
+export function ascentState(from, t, o = LAUNCH) {
+  const p = clamp(t, 0, 1)
+  const rise = Math.pow(p, o.liftoffPower)
+  const turn = smoothstep(0.15, 1, p)
+  const y = lerp(from.y, o.exitY, rise)
+
+  return {
+    x: from.x + o.drift * turn * rise,
+    y,
+    scale: from.scale * (1 - o.shrink * rise),
+    roll: from.roll + o.tilt * turn,
+    yaw: from.yaw,
+    // Тяга выходит на максимум за первую десятую — «зажигание».
+    thrust: lerp(from.thrust, o.thrust, smoothstep(0, 0.1, p)),
+    // Площадка стоит на месте, пока ракета не ушла высоко; потом «земля уходит вниз».
+    ground: smoothstep(0.5, 0.85, p),
+    lift: y - from.y,
+  }
+}
+
+/**
+ * Посадка: состояние в момент t (0 — за верхом экрана, 1 — стоит на площадке).
+ *
+ * Высота убывает как (1−t)^brakingPower: быстро входит в кадр и всё медленнее
+ * подходит к площадке — как ступень с реактивной посадкой. Тяга: тормозной
+ * импульс почти до конца, у самой площадки спадает до дежурной.
+ * @param {FlightState} to Состояние на площадке (точка `hero`).
+ * @param {number} t 0…1
+ * @param {typeof LAUNCH} [o]
+ * @returns {FlightState}
+ */
+export function descentState(to, t, o = LAUNCH) {
+  const p = clamp(t, 0, 1)
+  const left = Math.pow(1 - p, o.brakingPower) // сколько пути осталось, 1 → 0
+  const y = lerp(to.y, o.exitY, left)
+
+  return {
+    x: to.x + o.approach * left,
+    y,
+    scale: to.scale * (1 - o.shrink * left),
+    roll: to.roll + o.approachTilt * left,
+    yaw: to.yaw,
+    thrust: lerp(o.thrust, to.thrust, smoothstep(0.8, 1, p)),
+    // Площадка поднимается на место в начале захода — ракета садится уже на неё.
+    ground: 1 - smoothstep(0, 0.3, p),
+    lift: y - to.y,
+  }
+}
+
 /**
  * Перевести состояние полёта в мировые координаты сцены.
  *
  * @param {FlightState} state
  * @param {number} aspect Ширина / высота экрана.
  * @param {number} halfHeight Полувысота видимой области на плоскости ракеты.
- * @returns {{ x: number, y: number, scale: number }}
+ * @returns {{ x: number, y: number, scale: number, lift: number }} lift — на сколько ракета
+ *   выше площадки (мировые единицы).
  */
 export function toWorld(state, aspect, halfHeight) {
   const halfWidth = halfHeight * aspect
@@ -159,6 +258,7 @@ export function toWorld(state, aspect, halfHeight) {
     x: x * halfWidth,
     y: (state.y * 0.8 + shiftY) * halfHeight,
     scale: state.scale * fit,
+    lift: (state.lift ?? 0) * 0.8 * halfHeight,
   }
 }
 

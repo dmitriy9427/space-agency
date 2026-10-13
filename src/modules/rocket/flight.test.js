@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WAYPOINTS, WAYPOINTS_PORTRAIT, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
+import { LAUNCH, WAYPOINTS, WAYPOINTS_PORTRAIT, ascentState, descentState, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
 
 describe('rocket/flight', () => {
   const timeline = buildFlightTimeline([
@@ -45,7 +45,9 @@ describe('rocket/flight', () => {
     const a = { x: 0, y: 0, scale: 1, roll: 0, yaw: 0, thrust: 0, ground: 0 }
     const b = { x: 1, y: 2, scale: 3, roll: 4, yaw: 5, thrust: 6, ground: 7 }
 
-    expect(mixState(a, b, 0.5)).toEqual({ x: 0.5, y: 1, scale: 2, roll: 2, yaw: 2.5, thrust: 3, ground: 3.5 })
+    // lift в обычных точках нет — считается нулём.
+    expect(mixState(a, b, 0.5)).toEqual({ x: 0.5, y: 1, scale: 2, roll: 2, yaw: 2.5, thrust: 3, ground: 3.5, lift: 0 })
+    expect(mixState(a, { ...b, lift: 2 }, 0.5).lift).toBe(1)
   })
 
   it('toWorld: широкий экран и портрет', () => {
@@ -144,5 +146,71 @@ describe('rocket/flight', () => {
         800,
       ),
     ).toBe(false)
+  })
+
+  describe('запуск по кнопке', () => {
+    const pad = WAYPOINTS.landing
+
+    it('взлёт: начинает с места, уходит за верх экрана, площадка остаётся на земле', () => {
+      const start = ascentState(pad, 0)
+
+      expect(start.y).toBe(pad.y)
+      expect(start.x).toBe(pad.x)
+      expect(start.lift).toBe(0)
+      expect(start.ground).toBe(0)
+
+      const end = ascentState(pad, 1)
+
+      expect(end.y).toBe(LAUNCH.exitY)
+      expect(end.y * 0.8).toBeGreaterThan(1.5) // целиком над экраном
+      expect(end.thrust).toBe(LAUNCH.thrust)
+      expect(end.ground).toBe(1)
+      // Площадка не едет за ракетой: высота над ней = пройденный путь.
+      expect(ascentState(pad, 0.5).lift).toBeCloseTo(ascentState(pad, 0.5).y - pad.y)
+    })
+
+    it('взлёт: высота только растёт, сначала медленно; первые 15% — строго вверх', () => {
+      const ys = Array.from({ length: 21 }, (_, i) => ascentState(pad, i / 20).y)
+
+      for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThanOrEqual(ys[i - 1])
+      // За первую половину времени — меньше четверти пути (тяжёлый старт).
+      expect(ys[10] - ys[0]).toBeLessThan((ys[20] - ys[0]) / 4)
+      expect(ascentState(pad, 0.1).roll).toBe(pad.roll)
+      expect(ascentState(pad, 0.1).x).toBe(pad.x)
+      expect(ascentState(pad, 1).roll).toBe(pad.roll + LAUNCH.tilt)
+    })
+
+    it('посадка: из-за кадра точно в состояние площадки, тормозя к концу', () => {
+      const hero = WAYPOINTS.hero
+      const top = descentState(hero, 0)
+
+      expect(top.y).toBe(LAUNCH.exitY)
+      expect(top.ground).toBe(1)
+
+      const end = descentState(hero, 1)
+
+      // Совпадает с точкой сценария — передача управления прокрутке без скачка.
+      for (const key of ['x', 'y', 'scale', 'roll', 'yaw', 'thrust', 'ground']) expect(end[key]).toBeCloseTo(hero[key])
+      expect(end.lift).toBeCloseTo(0)
+
+      const ys = Array.from({ length: 21 }, (_, i) => descentState(hero, i / 20).y)
+
+      for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeLessThanOrEqual(ys[i - 1])
+      // Последняя половина времени — меньше 15% пути (мягкое касание).
+      expect(ys[10] - ys[20]).toBeLessThan((ys[0] - ys[20]) * 0.15)
+      // Площадка на месте раньше, чем ракета до неё дошла.
+      expect(descentState(hero, 0.3).ground).toBe(0)
+      expect(descentState(hero, 0.3).lift).toBeGreaterThan(0)
+    })
+
+    it('за пределами 0…1 время прижимается', () => {
+      expect(ascentState(pad, -1)).toEqual(ascentState(pad, 0))
+      expect(descentState(pad, 2)).toEqual(descentState(pad, 1))
+    })
+
+    it('toWorld переводит lift в мировые единицы', () => {
+      expect(toWorld({ ...pad, lift: 1 }, 1.6, 10).lift).toBe(8)
+      expect(toWorld(pad, 1.6, 10).lift).toBe(0)
+    })
   })
 })
