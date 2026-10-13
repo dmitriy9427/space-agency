@@ -11,7 +11,7 @@ const html = `<div tabindex="0">
 const finish = () => gsap.globalTimeline.getChildren(true, true, false).forEach((tween) => tween.progress(1))
 
 describe('sliders/stack', () => {
-  it('next уводит верхнюю карточку под низ, prev возвращает', () => {
+  it('кнопки и клавиши уводят верхнюю карточку под низ — в обе стороны, без возвратов', () => {
     const el = mount(html)
     const stack = init(el, createCtx())
 
@@ -21,20 +21,21 @@ describe('sliders/stack', () => {
     expect(stack.order).toEqual([1, 2, 3, 0])
     expect(el.querySelector('[data-stack-counter]').textContent).toBe('02 / 04')
 
+    // ← после → не возвращает ушедшую, а уводит следующую.
     el.querySelector('[data-prev]').click()
     finish()
-    expect(stack.order).toEqual([0, 1, 2, 3])
+    expect(stack.order).toEqual([2, 3, 0, 1])
 
     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
     finish()
-    expect(stack.order[0]).toBe(1)
+    expect(stack.order).toEqual([3, 0, 1, 2])
     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }))
     finish()
-    expect(stack.order[0]).toBe(0)
+    expect(stack.order).toEqual([0, 1, 2, 3]) // полный круг
     stack.destroy()
   })
 
-  it('карточка движется по направлению стрелки: ← бросает влево, → возвращает ушедшую влево', () => {
+  it('карточка улетает по направлению стрелки: → вправо, ← влево', () => {
     const el = mount(html)
     const stack = init(el, createCtx())
     const cards = el.querySelectorAll('[data-stack-card]')
@@ -42,40 +43,15 @@ describe('sliders/stack', () => {
     // В jsdom нет раскладки — задаём ширину, чтобы стороны (знак x) были видны.
     cards.forEach((card) => Object.defineProperty(card, 'offsetWidth', { value: 300 }))
 
-    const left = el.querySelector('[data-prev]')
-    const right = el.querySelector('[data-next]')
-
-    // Истории нет — ← бросает верхнюю ВЛЕВО.
-    left.click()
-    const throwTween = gsap.getTweensOf(cards[0])[0]
-
-    expect(throwTween.vars.x).toBeLessThan(0)
-    finish()
-    expect(stack.order).toEqual([1, 2, 3, 0])
-
-    // Последняя ушла влево, снова ← — бросаем следующую тоже влево.
-    left.click()
-    finish()
-    expect(stack.order).toEqual([2, 3, 0, 1])
-
-    // → — движение вправо возвращает карточку, ушедшую влево: прилетает СЛЕВА.
-    right.click()
-    const back = gsap.getTweensOf(cards[1])[0]
-
-    expect(gsap.getProperty(cards[1], 'x')).toBeLessThan(0) // стартовая точка fromTo — слева
-    expect(back).toBeTruthy()
-    finish()
-    expect(stack.order).toEqual([1, 2, 3, 0])
-
-    // Ещё → — возвращает и карточку 0 (тоже ушла влево).
-    right.click()
-    finish()
-    expect(stack.order).toEqual([0, 1, 2, 3])
-
-    // История пуста — → бросает верхнюю ВПРАВО.
-    right.click()
+    el.querySelector('[data-next]').click()
     expect(gsap.getTweensOf(cards[0])[0].vars.x).toBeGreaterThan(0)
     finish()
+
+    // Сразу в другую сторону: следующая карточка улетает ВЛЕВО, ушедшая не возвращается.
+    el.querySelector('[data-prev]').click()
+    expect(gsap.getTweensOf(cards[1])[0].vars.x).toBeLessThan(0)
+    finish()
+    expect(stack.order).toEqual([2, 3, 0, 1])
     stack.destroy()
   })
 

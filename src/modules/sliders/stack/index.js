@@ -7,16 +7,10 @@
  * сторону, куда её бросили, и тихо ложится под низ стопки. Не дотянули —
  * упруго возвращается на место.
  *
- * Правило: КАРТОЧКА ВСЕГДА ДВИЖЕТСЯ ПО НАПРАВЛЕНИЮ ДЕЙСТВИЯ.
- *   - Потянули вправо → карточка улетела вправо.
- *   - Нажали ← → карточка, ушедшая вправо, возвращается справа, двигаясь
- *     влево (движение «влево» вернуло её). Нажали ← ещё раз — возвращать
- *     больше нечего (последняя ушла не вправо), и верхняя карточка
- *     улетает влево.
- *   - С → всё зеркально.
- * Для этого модуль помнит историю ушедших карточек и сторону ухода
- * (createExitHistory в state.js), а решение «вернуть или бросить» принимает
- * чистая функция pressAction.
+ * Правило: КАРТОЧКА ВСЕГДА УЛЕТАЕТ ПО НАПРАВЛЕНИЮ ДЕЙСТВИЯ — и у жеста, и
+ * у кнопок. Потянули или нажали → — верхняя улетела вправо; ← — влево.
+ * Возвратов нет: ушедшая карточка ложится под низ и снова окажется сверху,
+ * когда до неё дойдёт очередь.
  *
  * ─── Как устроено ─────────────────────────────────────────────────────────
  * Порядок карточек хранит чистая логика (state.js → createStack): кто
@@ -25,9 +19,8 @@
  * После любого изменения порядка `layout()` плавно ставит все карточки в
  * позы своей глубины.
  *
- * Анимации ухода и прилёта — через `fromTo` (явно «откуда» и «куда»),
- * перед ними `killTweensOf` — так на карточку никогда не действуют два
- * твина сразу. Пока идёт анимация (`busy`), новые нажатия игнорируются.
+ * Перед анимацией ухода — `killTweensOf`: на карточку никогда не действуют
+ * два твина сразу. Пока идёт анимация (`busy`), новые нажатия игнорируются.
  *
  * Телефон: карточка тянется только по горизонтали (type 'x'), а у колоды
  * touch-action: pan-y — вертикальный жест остаётся прокруткой страницы.
@@ -36,10 +29,9 @@
 import { gsap, Draggable } from '../../../core/gsap.js'
 import { isCoarsePointer } from '../../../core/env.js'
 import { createDisposer } from '../../../core/lifecycle.js'
-import { createExitHistory, createStack, createVelocityTracker, pressAction, stackPose, swipeDecision } from './state.js'
-/** Длительности, секунды. */
+import { createStack, createVelocityTracker, stackPose, swipeDecision } from './state.js'
+/** Длительность ухода карточки, секунды. */
 export const FLY_DURATION = 0.5
-export const ARRIVE_DURATION = 0.7
 
 /**
  * @param {HTMLElement} el Корень (`[data-module="stack"]`).
@@ -51,8 +43,6 @@ export function init(el, ctx) {
   const counter = el.querySelector('[data-stack-counter]')
   const stack = createStack(cards.length)
   const tracker = createVelocityTracker()
-  // Помним не больше «карточек − 1»: сверху всегда должна остаться хотя бы одна.
-  const history = createExitHistory(cards.length - 1)
   const time = (seconds) => (ctx.reduced ? 0 : seconds)
   let busy = false
 
@@ -64,12 +54,11 @@ export function init(el, ctx) {
   }
 
   /**
-   * Поставить все карточки (кроме `skip`) в позы их глубины и включить
-   * перетаскивание только у верхней.
+   * Поставить все карточки в позы их глубины и включить перетаскивание
+   * только у верхней.
    */
-  const layout = ({ immediate = false, skip = null } = {}) => {
+  const layout = ({ immediate = false } = {}) => {
     cards.forEach((card, i) => {
-      if (card === skip) return
       gsap.to(card, {
         ...stackPose(stack.depthOf(i), cards.length),
         x: 0,
@@ -92,7 +81,6 @@ export function init(el, ctx) {
    */
   const flyAway = (card, direction, vy = 0) => {
     busy = true
-    history.push(card, direction)
     gsap.killTweensOf(card)
     gsap.to(card, {
       x: direction * card.offsetWidth * 1.6,
@@ -111,50 +99,10 @@ export function init(el, ctx) {
     })
   }
 
-  /**
-   * Вернуть последнюю ушедшую карточку. Она прилетает С ТОЙ СТОРОНЫ, куда
-   * ушла (`side`), и движется в противоположную — по направлению нажатой стрелки.
-   */
-  const bringBack = (side) => {
-    busy = true
-    history.pop()
-
-    // Ушедшие карточки ложатся под низ, поэтому последняя ушедшая — самая нижняя.
-    const card = cards[stack.prev()]
-    const from = side * card.offsetWidth * 1.4
-
-    gsap.killTweensOf(card)
-    // Сначала — остальные карточки на новые (более глубокие) места.
-    layout({ skip: card })
-    // Прилетающая: поверх всех, из-за края, с поворотом — в позу верхней.
-    gsap.fromTo(
-      card,
-      { x: from, y: 0, rotation: side * 24, autoAlpha: 0, zIndex: cards.length + 1 },
-      {
-        ...stackPose(0, cards.length),
-        x: 0,
-        autoAlpha: 1,
-        duration: time(ARRIVE_DURATION),
-        ease: 'power3.out',
-        onComplete: () => {
-          gsap.set(card, { zIndex: cards.length }) // обычный z-index верхней
-          syncDraggable(card)
-          busy = false
-        },
-      },
-    )
-  }
-
-  /**
-   * Нажатие стрелки в сторону `direction` (1 → вправо, −1 ← влево):
-   * вернуть карточку, ушедшую в противоположную сторону, или бросить верхнюю.
-   */
+  /** Нажатие стрелки: верхняя карточка улетает в сторону `direction` (1 → вправо, −1 ← влево). */
   const press = (direction) => {
     if (busy) return
-    const last = history.peek()
-
-    if (pressAction(direction, last) === 'return') bringBack(last.side)
-    else flyAway(cards[stack.top], direction)
+    flyAway(cards[stack.top], direction)
   }
 
   const next = () => press(1)

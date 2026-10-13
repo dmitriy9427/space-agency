@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { VISIBLE_DEPTH, createExitHistory, createStack, createVelocityTracker, pressAction, stackPose, swipeDecision } from './state.js'
+import { VISIBLE_DEPTH, createStack, createVelocityTracker, stackPose, swipeDecision } from './state.js'
 
 describe('sliders/stack/state', () => {
   it('next/prev крутят стопку по кругу', () => {
@@ -48,26 +48,4 @@ describe('sliders/stack/state', () => {
     tracker.push(0, 0)
     expect(tracker.velocity).toBe(0)
   })
-
-  it('pressAction: карточка движется по направлению стрелки', () => {
-    // Ушла вправо — ← (влево) возвращает её.
-    expect(pressAction(-1, { side: 1 })).toBe('return')
-    // Ушла вправо — → (вправо) бросает следующую.
-    expect(pressAction(1, { side: 1 })).toBe('throw')
-    expect(pressAction(1, { side: -1 })).toBe('return')
-    expect(pressAction(-1, undefined)).toBe('throw')
-  })
-
-  it('история ушедших ограничена', () => {
-    const history = createExitHistory(2)
-
-    history.push(0, 1)
-    history.push(1, -1)
-    history.push(2, 1)
-    expect(history.size).toBe(2)
-    expect(history.peek()).toEqual({ card: 2, side: 1 })
-    expect(history.pop()).toEqual({ card: 2, side: 1 })
-    expect(history.peek()).toEqual({ card: 1, side: -1 })
-  })
 })
-
