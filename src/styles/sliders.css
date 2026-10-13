@@ -3,13 +3,18 @@
 /* --- 1. ring --------------------------------------------------------------- */
 
 .ring {
+  /* Ширина карточки — одна переменная: от неё считается и высота сцены. */
+  --ring-card: clamp(200px, 22vw, 280px);
+
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
+/* Высота сцены = высота карточки (пропорция 400/520) + запас на перспективу и
+   свечение. Раньше была «от высоты экрана» — под карточками оставалась пустота. */
 .ring__stage {
   position: relative;
-  height: clamp(440px, 60vh, 600px);
+  height: calc(var(--ring-card) * 1.3 + 96px);
   perspective: 1800px;
   perspective-origin: 50% 40%;
   cursor: grab;
@@ -37,7 +42,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: clamp(200px, 22vw, 280px);
+  width: var(--ring-card);
   aspect-ratio: 400 / 520;
   overflow: hidden;
   border-radius: var(--radius);
@@ -52,15 +57,18 @@
 /* --- 2. stack -------------------------------------------------------------- */
 
 .stack {
+  --stack-card: min(360px, 78vw);
+
   display: grid;
-  gap: 28px;
+  gap: 20px;
 }
 
 /* touch-action: none — мышью карточку можно тянуть в любую сторону.
    Тач-экран: pan-y (mobile.css) и Draggable type 'x' — страница прокручивается. */
 .stack__deck {
   position: relative;
-  height: clamp(460px, 62vh, 580px);
+  /* Высота карточки (440/560) + место под «хвост» стопки снизу. */
+  height: calc(var(--stack-card) * 1.273 + 44px);
   touch-action: none;
 }
 
@@ -68,8 +76,8 @@
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(360px, 78vw);
-  margin-left: calc(min(360px, 78vw) / -2);
+  width: var(--stack-card);
+  margin-left: calc(var(--stack-card) / -2);
   aspect-ratio: 440 / 560;
   overflow: hidden;
   border-radius: 24px;
@@ -90,15 +98,19 @@
 
 .infinite {
   --infinite-gap: 28px;
+  --infinite-slide-height: clamp(320px, 50vh, 470px);
 
   display: grid;
-  gap: 24px;
+  gap: 6px;
 }
 
+/* Высота окна = высота слайда + небольшой запас на наклон и свечение. */
 .infinite__viewport {
   position: relative;
-  height: clamp(420px, 62vh, 600px);
+  height: calc(var(--infinite-slide-height) + 56px);
   overflow: hidden;
+  /* Маска по краям: слайды не обрезаются «ножом», а растворяются. */
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   touch-action: pan-y;
   cursor: grab;
   user-select: none;
@@ -114,7 +126,7 @@
   bottom: 0;
   left: 0;
   width: clamp(240px, 26vw, 360px);
-  height: clamp(320px, 50vh, 470px);
+  height: var(--infinite-slide-height);
   margin: auto 0;
   overflow: hidden;
   border-radius: var(--radius);
@@ -148,15 +160,36 @@
   color: rgb(255 255 255 / 75%);
 }
 
+/* Подпись между кнопками. Высота ПОСТОЯННАЯ — на две строки: длинное название
+   переносится, короткое стоит по центру, а кнопки и всё, что ниже, не прыгают. */
 .infinite__title {
+  display: flex;
   flex: 1;
-  max-width: 460px;
+  align-items: center;
+  justify-content: center;
+  max-width: 520px;
+  /* Две строки (2.3em) + поля под маску по 0.4em: текст в две строки её не
+     касается. Отрицательный margin убирает эти поля из раскладки — блок с
+     кнопками остаётся компактным. */
+  height: 3.1em;
+  margin-block: -0.4em;
   overflow: hidden;
   font-family: var(--display);
   font-size: clamp(1.1rem, 2vw, 1.7rem);
   font-weight: 700;
+  line-height: 1.15;
   text-align: center;
   text-transform: uppercase;
+  text-wrap: balance;
+  /* Маска сверху и снизу: при смене названия строка не обрезается «ножом», а
+     растворяется у края окошка. */
+  mask-image: linear-gradient(transparent, #000 13%, #000 87%, transparent);
+}
+
+/* Строка названия: её двигает JS (infinite/index.js), подпись остаётся на месте. */
+.infinite__title-line {
+  display: block;
+  will-change: transform;
 }
 
 /* Без JS — обычная горизонтальная прокрутка. */
@@ -184,8 +217,11 @@
   height: 100%;
 }
 
+/* Барабан: запас больше — изгиб цилиндра и отражение. Маска не нужна: края
+   барабана и так уходят в глубину. */
 .infinite--3d .infinite__viewport {
-  height: clamp(460px, 70vh, 680px);
+  height: calc(var(--infinite-slide-height) + 120px);
+  mask-image: none;
 }
 
 /* --- 5. видеолента (см. src/modules/sliders/video-strip) ----------------------- */
@@ -197,6 +233,8 @@
 
   /* Окно ленты: всё, что шире, обрезается; дорожку тянут мышью. */
   overflow: hidden;
+  /* Маска по краям — карточки растворяются, а не обрезаются. */
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   /* Вертикальный жест — прокрутка страницы, горизонтальный — Draggable. */
   touch-action: pan-y;
   user-select: none;

@@ -1,5 +1,6 @@
 /**
- * Полноэкранные слайды «Направления» — листаются колесом, свайпом, стрелками.
+ * Полноэкранные слайды «Направления» — листаются колесом, свайпом, стрелками
+ * (в обе оси: ↑ ↓ — слайд въезжает снизу/сверху, ← → — сбоку) и кнопками.
  *
  * ─── Что видит пользователь ───────────────────────────────────────────────
  * Экран целиком занят одной планетой. Одно движение колеса (или свайп,
@@ -91,15 +92,19 @@ export function init(el, ctx) {
 
   /**
    * Показать слайд `index`. `direction` 1 — листаем вперёд (новый въезжает
-   * снизу), −1 — назад (сверху).
+   * снизу или справа), −1 — назад (сверху или слева). `axis` — по какой оси
+   * едет «шторка»: 'y' — вертикально (колесо, ↑ ↓), 'x' — горизонтально (← →,
+   * свайп вбок, кнопки-стрелки).
    */
-  function goTo(index, direction) {
+  function goTo(index, direction, axis = 'y') {
     index = mod(index, count) // после последнего — снова первый
     if (index === current || animating) return
     animating = true
 
     const from = current
     const dir = direction
+    // Двигаем одну ось, вторую явно обнуляем: слайд мог в прошлый раз уехать по другой.
+    const shift = (value) => (axis === 'x' ? { xPercent: value, yPercent: 0 } : { xPercent: 0, yPercent: value })
     const tl = gsap.timeline({
       defaults: { duration, ease: 'power2.inOut' },
       onComplete: () => (animating = false),
@@ -108,13 +113,14 @@ export function init(el, ctx) {
     // Уходящий слайд: съезжает вверх (или вниз), фон — с параллаксом.
     if (from >= 0) {
       gsap.set(slides[from], { zIndex: 0 })
-      tl.to(bgs[from], { yPercent: -15 * dir }, 0).set(slides[from], { autoAlpha: 0 })
+      tl.to(bgs[from], shift(-15 * dir), 0).set(slides[from], { autoAlpha: 0 })
     }
 
     // Входящий слайд: «шторка» из двух обёрток (см. шапку файла).
     gsap.set(slides[index], { autoAlpha: 1, zIndex: 1 })
-    tl.fromTo([outers[index], inners[index]], { yPercent: (i) => (i ? -100 * dir : 100 * dir) }, { yPercent: 0 }, 0)
-      .fromTo(bgs[index], { yPercent: 15 * dir }, { yPercent: 0 }, 0)
+    tl.fromTo(outers[index], shift(100 * dir), shift(0), 0)
+      .fromTo(inners[index], shift(-100 * dir), shift(0), 0)
+      .fromTo(bgs[index], shift(15 * dir), shift(0), 0)
 
     // Буквы названия — волной снизу.
     if (splits[index]) {
@@ -169,6 +175,10 @@ export function init(el, ctx) {
     preventDefault: true,
     onUp: () => goTo(current + 1, 1),
     onDown: () => goTo(current - 1, -1),
+    // Горизонталь: свайп влево (или жест тачпада вправо — wheelSpeed его
+    // переворачивает) — следующий слайд, въезжает справа.
+    onLeft: () => goTo(current + 1, 1, 'x'),
+    onRight: () => goTo(current - 1, -1, 'x'),
   })
 
   d.add(() => observer.kill())
@@ -183,7 +193,22 @@ export function init(el, ctx) {
       event.preventDefault()
       goTo(current - 1, -1)
     }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      goTo(current + 1, 1, 'x')
+    }
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      goTo(current - 1, -1, 'x')
+    }
   })
+
+  // Кнопки-стрелки: листают по горизонтали.
+  const prev = el.querySelector('[data-fslides-prev]')
+  const next = el.querySelector('[data-fslides-next]')
+
+  if (prev) d.listen(prev, 'click', () => goTo(current - 1, -1, 'x'))
+  if (next) d.listen(next, 'click', () => goTo(current + 1, 1, 'x'))
 
   // Точки навигации.
   dots.forEach((dot, i) => d.listen(dot, 'click', () => goTo(i, i > current ? 1 : -1)))

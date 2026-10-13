@@ -461,13 +461,17 @@ footer {
   overflow: hidden;
   border-block: 1px solid var(--line);
   padding: 16px 0;
+  /* Строка — отдельный «остров» отрисовки: её движение не задевает соседей. */
+  contain: layout paint style;
 }
 
 .marquee__track {
   display: flex;
   width: max-content;
   font-family: var(--display);
-  font-size: clamp(2.6rem, 8vw, 7rem);
+  /* Обведённый текст дорог в отрисовке, а площадь растёт как квадрат размера:
+     5.2rem вместо 7rem — почти вдвое меньше работы видеокарте. */
+  font-size: clamp(2.4rem, 6.5vw, 5.2rem);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -475,6 +479,15 @@ footer {
   white-space: nowrap;
   color: transparent;
   -webkit-text-stroke: 1px rgb(238 240 246 / 55%);
+  /* Постоянный слой для движения: без пересоздания при каждом разгоне. */
+  will-change: transform;
+}
+
+/* Слабое устройство (data-quality ставит app.js): заливка вместо обводки —
+   обычные буквы видеокарта рисует из готового атласа, почти бесплатно. */
+[data-quality='low'] .marquee__track {
+  color: rgb(238 240 246 / 16%);
+  -webkit-text-stroke: 0;
 }
 
 .mission__legal {

@@ -82,23 +82,28 @@ export function init(el, ctx) {
 
     // --- бегущая строка ------------------------------------------------------
     if (marquee && !ctx.reduced) {
-      const loop = gsap.to(marquee, { xPercent: -50, duration: 22, ease: 'none', repeat: -1 })
+      // paused: строка едет, только пока подвал на экране. Раньше она крутилась
+      // всегда — браузер каждый кадр перерисовывал куски огромного обведённого
+      // текста, даже когда его не видно (на слабых видеокартах — подвисание внизу).
+      const loop = gsap.to(marquee, { xPercent: -50, duration: 22, ease: 'none', repeat: -1, paused: true })
+      // Один переиспользуемый твин скорости вместо двух новых на каждое событие прокрутки.
+      const speed = { value: 1 }
+      const setSpeed = gsap.quickTo(speed, 'value', { duration: 0.25, ease: 'power2.out', onUpdate: () => loop.timeScale(speed.value) })
       let direction = 1
+      let settle = null
 
       ScrollTrigger.create({
         trigger: el,
         start: 'top bottom',
         end: 'bottom top',
+        onToggle: (self) => loop.paused(!self.isActive),
         onUpdate: (self) => {
           direction = self.direction || direction
-          // Резко: timeScale до «направление × (1 + скорость)», затем через 0.25 с
-          // плавно обратно к обычной скорости в текущем направлении.
-          gsap.to(loop, {
-            timeScale: direction * (1 + Math.min(Math.abs(self.getVelocity()) / 400, 6)),
-            duration: 0.2,
-            overwrite: true,
-          })
-          gsap.to(loop, { timeScale: direction, duration: 1.2, delay: 0.25, ease: 'power2.out' })
+          // Резко разгоняем до «направление × (1 + скорость прокрутки)», а через
+          // 0.25 с плавно возвращаем к обычной скорости в том же направлении.
+          setSpeed(direction * (1 + Math.min(Math.abs(self.getVelocity()) / 400, 6)))
+          settle?.kill()
+          settle = gsap.delayedCall(0.25, () => setSpeed(direction))
         },
       })
     }

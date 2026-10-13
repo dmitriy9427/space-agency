@@ -89,11 +89,13 @@ describe('rocket (обвязка, WebGL замокан)', () => {
     expect(ctx.rocket).toBeNull()
   })
 
-  it('запуск: путь по сценарию, но носом вверх; после прибытия — обычный сценарий', async () => {
-    const canvas = mount('<canvas></canvas><section data-flight="hero"></section><section data-flight="final"></section>')
+  const noseY = (flight) => Math.cos((flight.roll * Math.PI) / 180)
+  const html = '<canvas></canvas><section data-flight="hero"></section><section data-flight="final"></section>'
+
+  it('пуск: место по сценарию, нос сразу вверх', async () => {
     // Прокрутка «в конце страницы»: по сценарию ракета здесь носом вниз (точка final).
     const ctx = createCtx({ getScroll: () => 99999 })
-    const rocket = await init(canvas, ctx)
+    const rocket = await init(mount(html), ctx)
     const scene = scenes[0]
     const frame = () => {
       gsap.ticker.tick()
@@ -101,51 +103,51 @@ describe('rocket (обвязка, WebGL замокан)', () => {
     }
     const scripted = { ...frame() }
 
-    expect(Math.cos((scripted.roll * Math.PI) / 180)).toBeCloseTo(-1)
+    expect(noseY(scripted)).toBeCloseTo(-1)
 
     ctx.bus.emit('launch')
     expect(scene.boosted).toBeGreaterThan(1)
 
     const flying = frame()
 
-    expect(Math.cos((flying.roll * Math.PI) / 180)).toBeCloseTo(1) // нос вверх
+    expect(noseY(flying)).toBeCloseTo(1) // нос вверх
     expect(flying.x).toBe(scripted.x) // место — то же, что по сценарию
     expect(flying.y).toBe(scripted.y)
     expect(flying.thrust).toBeGreaterThan(scripted.thrust)
-
-    ctx.bus.emit('launch:arrived')
-    finish()
-    expect(frame().roll).toBeCloseTo(scripted.roll)
     expect(typeof ctx.flightTimeline).toBe('function')
     rocket.destroy()
   })
 
-  it('запуск прерван пользователем — нос плавно возвращается; reduced — нос не трогаем', async () => {
-    const html = '<canvas></canvas><section data-flight="hero"></section><section data-flight="final"></section>'
-    const ctx = createCtx({ getScroll: () => 99999 })
+  it('крутим вверх — нос вверх, крутим вниз — обратно к сценарию; reduced — нос не трогаем', async () => {
+    let scroll = 50000
+    const ctx = createCtx({ getScroll: () => scroll })
     const rocket = await init(mount(html), ctx)
     const scene = scenes[0]
+    // Несколько кадров с прокруткой на `step` px за кадр.
+    const run = (step, frames = 2000) => {
+      for (let i = 0; i < frames; i++) {
+        scroll += step
+        gsap.ticker.tick()
+      }
+      return scene.flight
+    }
 
-    gsap.ticker.tick()
-
-    const scripted = scene.flight.roll
-
-    ctx.bus.emit('launch')
-    ctx.bus.emit('launch:aborted')
-    gsap.ticker.tick()
-    finish()
-    gsap.ticker.tick()
-    expect(scene.flight.roll).toBeCloseTo(scripted)
+    expect(noseY(run(0, 3))).toBeCloseTo(-1) // стоим: сценарий, нос вниз
+    expect(noseY(run(-40))).toBeGreaterThan(0.95) // едем вверх: нос плавно поворачивается вверх
+    expect(noseY(run(0, 300))).toBeGreaterThan(0.95) // остановились: направление помним
+    expect(noseY(run(40))).toBeLessThan(-0.95) // снова вниз: обычный сценарий
     rocket.destroy()
 
     scenes.length = 0
+    scroll = 50000
 
-    const reducedCtx = createCtx({ reduced: true, getScroll: () => 99999 })
-    const still = await init(mount(html), reducedCtx)
+    const still = await init(mount(html), createCtx({ reduced: true, getScroll: () => scroll }))
 
-    reducedCtx.bus.emit('launch')
-    gsap.ticker.tick()
-    expect(scenes[0].flight.roll).toBeCloseTo(scripted)
+    for (let i = 0; i < 60; i++) {
+      scroll -= 40
+      gsap.ticker.tick()
+    }
+    expect(noseY(scenes[0].flight)).toBeCloseTo(-1)
     still.destroy()
   })
 

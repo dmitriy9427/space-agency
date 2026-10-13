@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LAUNCH, WAYPOINTS, WAYPOINTS_PORTRAIT, angleDelta, noseUpRoll, returnState, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
+import { LAUNCH, WAYPOINTS, WAYPOINTS_PORTRAIT, angleDelta, noseUpRoll, returnState, returnTarget, buildFlightTimeline, coversViewport, heading, mixState, sampleFlight, thrustWithVelocity, toWorld, waypointsFor } from './flight.js'
 
 describe('rocket/flight', () => {
   const timeline = buildFlightTimeline([
@@ -190,6 +190,18 @@ describe('rocket/flight', () => {
       // mix 0 — обычный сценарий, 0.5 — полпути (плавная передача управления).
       expect(returnState(scripted, 0)).toEqual(scripted)
       expect(heading(returnState(scripted, 0.5).roll)).toBeCloseTo(0)
+    })
+
+    it('returnTarget: направление по скорости прокрутки, почти стоим — помним прошлое', () => {
+      expect(returnTarget(-500, 0)).toBe(1) // едем вверх
+      expect(returnTarget(500, 1)).toBe(0) // едем вниз
+      expect(returnTarget(-5, 0)).toBe(0) // дрожание колеса — не считается
+      expect(returnTarget(5, 1)).toBe(1)
+    })
+
+    it('на площадке двигатель не форсируется, даже если «летим обратно»', () => {
+      expect(returnState(WAYPOINTS.hero, 1).thrust).toBe(WAYPOINTS.hero.thrust)
+      expect(returnState(WAYPOINTS.landing, 1).thrust).toBe(WAYPOINTS.landing.thrust)
     })
 
     it('на площадках (внизу и наверху) нос уже вверх — включение и отпускание без скачка', () => {

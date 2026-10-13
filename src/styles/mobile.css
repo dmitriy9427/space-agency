@@ -85,29 +85,27 @@
   }
 
   /* 3D-кольцо: карточки крупнее, иначе 8 штук на телефоне — мелочь. */
-  .ring__stage {
-    height: 420px;
+  /* Высоты сцен считаются от этих переменных (sliders.css). */
+  .ring {
+    --ring-card: 52vw;
   }
 
-  .ring__card {
-    width: 52vw;
-  }
-
-  .stack__deck {
-    height: 480px;
-  }
-
-  .infinite__viewport {
-    height: 440px;
+  .infinite {
+    --infinite-slide-height: 380px;
   }
 
   .infinite__slide {
     width: 64vw;
-    height: 380px;
+  }
+
+  /* На узком экране маска уже: иначе «съедает» заметную часть карточки. */
+  .infinite__viewport,
+  .vstrip {
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   }
 
   .infinite--3d .infinite__viewport {
-    height: 460px;
+    mask-image: none;
   }
 
   /* Видеолента: раскрытие по тапу уже есть; карточки уже (раскрытая — ×3). */
@@ -154,5 +152,10 @@
   .fslides__ui {
     top: 88px;
     bottom: auto;
+  }
+
+  /* На телефоне листают свайпом — стрелки не нужны и занимают место. */
+  .fslides__arrows {
+    display: none;
   }
 }

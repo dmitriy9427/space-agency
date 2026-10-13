@@ -50,6 +50,15 @@ export function mountInfinite(el, ctx, makeRenderer) {
   const viewport = el.querySelector('[data-infinite-viewport]')
   const slides = Array.from(el.querySelectorAll('[data-infinite-slide]'))
   const title = el.querySelector('[data-infinite-title]')
+  // Строка внутри подписи — её и анимируем (подпись служит маской).
+  const titleLine = title ? document.createElement('span') : null
+  let titleSwap = null
+
+  if (title) {
+    titleLine.className = 'infinite__title-line'
+    titleLine.textContent = title.textContent
+    title.replaceChildren(titleLine)
+  }
   const counter = el.querySelector('[data-infinite-counter]')
 
   if (!viewport || slides.length < 3) return { destroy() {} }
@@ -67,6 +76,7 @@ export function mountInfinite(el, ctx, makeRenderer) {
   let moved = false
 
   d.add(() => renderer.dispose())
+  d.add(() => titleSwap?.kill())
 
   const measure = () => {
     const gap = parseFloat(getComputedStyle(el).getPropertyValue('--infinite-gap')) || 24
@@ -87,10 +97,15 @@ export function mountInfinite(el, ctx, makeRenderer) {
     if (title) {
       const text = slides[index].dataset.title ?? ''
 
-      gsap.timeline()
-        .to(title, { yPercent: -100, autoAlpha: 0, duration: ctx.reduced ? 0 : 0.2, ease: 'power2.in' })
-        .add(() => (title.textContent = text))
-        .fromTo(title, { yPercent: 100 }, { yPercent: 0, autoAlpha: 1, duration: ctx.reduced ? 0 : 0.45, ease: 'power3.out' })
+      // Двигается строка ВНУТРИ подписи, а сама подпись — неподвижное «окошко»
+      // с маской (sliders.css): старое название уезжает вверх и растворяется у
+      // края, новое выезжает снизу. Раньше ехала вся подпись вместе с рамкой.
+      titleSwap?.kill()
+      titleSwap = gsap
+        .timeline()
+        .to(titleLine, { yPercent: -110, duration: ctx.reduced ? 0 : 0.22, ease: 'power2.in' })
+        .add(() => (titleLine.textContent = text))
+        .fromTo(titleLine, { yPercent: 110 }, { yPercent: 0, duration: ctx.reduced ? 0 : 0.45, ease: 'power3.out' })
     }
   }
 

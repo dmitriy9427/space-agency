@@ -29,11 +29,12 @@
  *
  * ─── События шины ─────────────────────────────────────────────────────────────
  *   story:scene (≥ 2) → отстрел ускорителей (replay: true — см. core/bus.js);
- *   launch            → кнопка «Пуск»: страница едет наверх, ракета проходит тот же
- *                       путь обратно носом вверх (returnState в flight.js);
- *   launch:arrived    → доехали наверх: управление снова у обычного сценария;
- *   launch:aborted    → пользователь сам взялся за прокрутку: нос плавно
- *                       возвращается к сценарию.
+ *   launch            → кнопка «Пуск»: всплеск тяги, сразу включается обратный полёт.
+ *
+ * ─── Обратный полёт ───────────────────────────────────────────────────────────
+ * Когда страница едет вверх (после пуска или пользователь крутит сам), ракета
+ * проходит тот же путь в обратную сторону носом вверх (returnState в flight.js).
+ * Направление берётся из скорости прокрутки, нос поворачивается плавно.
  * @module rocket
  */
 import { gsap, ScrollTrigger } from '../../core/gsap.js'
@@ -41,7 +42,16 @@ import { supportsWebGL } from '../../core/env.js'
 import { createDisposer } from '../../core/lifecycle.js'
 import { createRenderLoop, observeSize } from '../../core/webgl.js'
 import { damp } from '../../core/math.js'
-import { buildFlightTimeline, coversViewport, returnState, sampleFlight, thrustWithVelocity, waypointsFor } from './flight.js'
+import {
+  LAUNCH,
+  buildFlightTimeline,
+  coversViewport,
+  returnState,
+  returnTarget,
+  sampleFlight,
+  thrustWithVelocity,
+  waypointsFor,
+} from './flight.js'
 
 /** Опорная линия: секция «приходит», когда её верх на этой высоте экрана. */
 export const FLIGHT_START = 'top 65%'
@@ -110,26 +120,20 @@ export async function init(canvas, ctx) {
       })
     }, { replay: true }),
   )
-  // --- запуск по кнопке ---------------------------------------------------------
-  // Пока страница едет наверх, ракета идёт по сценарию в обратную сторону носом
-  // вверх (returnState). `mix`: 1 — обратный полёт, 0 — обычный сценарий.
-  const launch = { mix: 0 }
-  const handOver = (duration) => gsap.to(launch, { mix: 0, duration, ease: 'power2.inOut', overwrite: true })
+  // --- обратный полёт ---------------------------------------------------------
+  // Страница едет вверх (пуск или пользователь крутит снизу вверх) — ракета идёт
+  // по сценарию в обратную сторону носом вверх (returnState). `mix`: 1 — обратный
+  // полёт, 0 — обычный сценарий; к цели `target` подходит плавно (в цикле ниже).
+  const back = { mix: 0, target: 0 }
 
-  d.add(() => gsap.killTweensOf(launch))
   d.add(
     ctx.bus.on('launch', () => {
       scene.boost(1.6)
       if (ctx.reduced) return // без полёта: страница просто окажется наверху
       // На площадке нос и так вверх (720° ≡ 0°) — включаем сразу, скачка нет.
-      gsap.killTweensOf(launch)
-      launch.mix = 1
+      back.mix = back.target = 1
     }),
   )
-  // Доехали: наверху сценарий и «нос вверх» совпадают — отпускаем быстро.
-  d.add(ctx.bus.on('launch:arrived', () => handOver(0.4)))
-  // Пользователь перехватил прокрутку: нос плавно возвращается к сценарию.
-  d.add(ctx.bus.on('launch:aborted', () => handOver(1.2)))
 
   // --- курсор -----------------------------------------------------------------
   const pointer = { x: 0, y: 0 }
@@ -158,10 +162,15 @@ export async function init(canvas, ctx) {
       const step = Math.min(Math.max(dt, 0.001), 0.1)
       const scroll = ctx.getScroll()
       const scripted = sampleFlight(timeline, scroll)
-      const flight = launch.mix > 0 ? returnState(scripted, launch.mix) : scripted
 
       velocity = damp(velocity, (scroll - lastScroll) / step, 8, step)
       lastScroll = scroll
+      // Направление полёта — по направлению прокрутки.
+      if (!ctx.reduced) back.target = returnTarget(velocity, back.target)
+      back.mix = damp(back.mix, back.target, LAUNCH.turnRate, step)
+
+      const flight = back.mix > 0.001 ? returnState(scripted, back.mix) : scripted
+
       smoothX = damp(smoothX, pointer.x, 3, step)
       smoothY = damp(smoothY, pointer.y, 3, step)
 
