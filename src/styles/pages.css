@@ -52,11 +52,16 @@
   position: relative;
 }
 
-/* Закреплённый экран: заголовок сверху, лента посередине. overflow: hidden —
+/* Закреплённый экран: заголовок и лента одним блоком по центру экрана по
+   вертикали. Было `auto 1fr` — ряд ленты растягивался на всю оставшуюся высоту,
+   карточки прилипали к заголовку, а внизу оставалась пустота. overflow: hidden —
    лента шире экрана, лишнее за краем не видно. */
 .hscroll__pin {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto;
+  /* Колонка — ширина экрана, а не ширина ленты (лента шире: max-content). */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
   height: 100vh;
   height: 100svh; /* телефон: без учёта адресной строки */
   padding: 110px 0 60px;
