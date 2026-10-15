@@ -176,3 +176,31 @@ init(el, ctx)
 эти переменные (см. [07-customization.md](07-customization.md)).
 
 Дальше — [05-modules.md](05-modules.md).
+
+## Попробуйте сами
+
+1. Напишите модуль `blink`: элемент `[data-module="blink"]` мигает раз в секунду, а в `destroy`
+   перестаёт. Где его зарегистрировать?
+2. Ракета должна реагировать на нажатие кнопки «Пуск» в другом модуле. Импортировать модуль
+   ракеты в модуль кнопки или использовать шину? Почему?
+3. Почему тексты миссий лежат в `src/content/`, а не прямо в HTML?
+
+<details>
+<summary>Ответы</summary>
+
+1. ```js
+   export function init(el, ctx) {
+     const g = gsap.context(() => {
+       if (ctx.reduced) return
+       gsap.to(el, { autoAlpha: 0.2, repeat: -1, yoyo: true, duration: 0.5 })
+     }, el)
+     return { destroy: () => g.revert() }
+   }
+   ```
+   Зарегистрировать в `src/main.js`: импорт `import * as blink from './modules/blink/index.js'` и
+   строка `blink: blink.init` в `PAGE_MODULES` (или в общем реестре, если нужен на всех страницах).
+2. Шина: кнопка шлёт `launch`, ракета слушает. Кнопка не зависит от того, есть ли ракета (на
+   телефоне без WebGL её нет).
+3. Данные отдельно от вёрстки: одни и те же миссии рисуются в нескольких местах, а тексты можно
+   поменять, не трогая разметку (и проверить тестом `data.test.js`).
+</details>
